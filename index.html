@@ -531,19 +531,20 @@ function renderHistory(){
     <tr>
       ${showPropertyColumn ? `<td>${r.property || 'Main House'}</td>` : ''}
       <td>${r.month}</td>
-      <td class="num">${fmt(r.totalKwh)}</td>
-      <td class="num">${fmt(r.s1Kwh)}</td>
-      <td class="num">${fmt(r.s2Kwh)}</td>
-      <td class="num">${fmt(r.houseKwh)}</td>
-      <td class="num">${fmt(r.totalCash)}</td>
+      <td class="num">${fmt(r.totalKwh)} kWh / ₱${fmt(r.totalCash)}</td>
+      <td class="num">${fmt(r.s1Kwh)} kWh / ₱${fmt(r.s1Bill)}</td>
+      <td class="num">${fmt(r.s2Kwh)} kWh / ₱${fmt(r.s2Bill)}</td>
+      <td class="num">${fmt(r.houseKwh)} kWh / ₱${fmt(r.houseBill)}</td>
     </tr>
   `).join('');
 
   wrap.innerHTML = `
-    <table>
-      <thead><tr>${showPropertyColumn ? '<th>Property</th>' : ''}<th>Month</th><th>Main total kWh</th><th>Cafe kWh</th><th>Car wash kWh</th><th>House kWh</th><th>Total cash</th></tr></thead>
-      <tbody>${rows}</tbody>
-    </table>
+    <div style="overflow-x:auto;">
+      <table>
+        <thead><tr>${showPropertyColumn ? '<th>Property</th>' : ''}<th>Month</th><th>Main total kWh / Amount</th><th>Cafe kWh / Amount</th><th>Car wash kWh / Amount</th><th>House kWh / Amount</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
   `;
 
   if (showPropertyColumn){
