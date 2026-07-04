@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Electric Billing — Main / Net Cafe / Car Wash</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --page-bg:#EFEDE6;
+    --panel:#1F2723;
+    --panel-2:#293530;
+    --ink:#1F2723;
+    --ink-soft:#5B6058;
+    --line:#D8D5C9;
+    --amber:#F2B705;
+    --amber-dim:#8a6c1f;
+    --green:#5FBE7A;
+    --green-dim:#2f6a45;
+    --teal:#145C54;
+    --teal-hover:#0e433d;
+    --red:#B23A2E;
+    --card-bg:#FFFFFF;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--page-bg);
+    color:var(--ink);
+    font-family:'Inter',sans-serif;
+    padding:24px 16px 80px;
+  }
+  .wrap{max-width:980px;margin:0 auto;}
+
+  header{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:24px;}
+  header h1{
+    font-family:'Space Mono',monospace;
+    font-size:22px;
+    font-weight:700;
+    margin:0;
+    letter-spacing:-0.02em;
+  }
+  header p{margin:4px 0 0;color:var(--ink-soft);font-size:13px;}
+  .month-field{display:flex;flex-direction:column;gap:4px;}
+  .month-field label{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-soft);}
+  .month-field input{font-family:'Space Mono',monospace;}
+
+  .meters{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;margin-bottom:20px;}
+
+  .meter-card{
+    background:var(--panel);
+    border-radius:12px;
+    padding:18px 18px 16px;
+    color:#EDEBE3;
+  }
+  .meter-card.house{background:var(--panel-2);}
+  .meter-card .m-title{
+    font-family:'Space Mono',monospace;
+    font-size:13px;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+    color:#B9B6AA;
+    margin:0 0 12px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+  }
+  .row-inline{display:flex;gap:10px;margin-bottom:10px;}
+  .field{flex:1;display:flex;flex-direction:column;gap:4px;}
+  .field label{font-size:11px;color:#9C998D;}
+  .field input{
+    background:#0F1512;
+    border:1px solid #384038;
+    color:#EDEBE3;
+    border-radius:6px;
+    padding:8px 10px;
+    font-family:'Space Mono',monospace;
+    font-size:14px;
+    width:100%;
+  }
+  .field input:focus{outline:2px solid var(--amber);outline-offset:1px;}
+
+  .readout{
+    margin-top:8px;
+    background:#0F1512;
+    border-radius:8px;
+    padding:10px 12px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+  }
+  .readout .label{font-size:11px;color:#9C998D;text-transform:uppercase;letter-spacing:.05em;}
+  .readout .value{font-family:'Space Mono',monospace;font-size:20px;color:var(--amber);}
+  .meter-card.house .readout .value{color:var(--green);}
+  .readout .unit{font-size:11px;color:#7d7a6f;margin-left:4px;}
+
+  .bar{display:flex;gap:12px;flex-wrap:wrap;margin:20px 0;}
+  button{
+    font-family:'Inter',sans-serif;
+    font-weight:600;
+    font-size:14px;
+    border-radius:8px;
+    padding:10px 18px;
+    border:1px solid transparent;
+    cursor:pointer;
+  }
+  button.primary{background:var(--teal);color:#fff;}
+  button.primary:hover{background:var(--teal-hover);}
+  button.ghost{background:transparent;color:var(--ink);border-color:var(--line);}
+  button.ghost:hover{background:#fff;}
+  button.danger-ghost{background:transparent;color:var(--red);border-color:#e3c3bf;}
+
+  section.card{
+    background:var(--card-bg);
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:18px 20px;
+    margin-bottom:20px;
+  }
+  section.card h2{
+    font-family:'Space Mono',monospace;
+    font-size:14px;
+    text-transform:uppercase;
+    letter-spacing:.06em;
+    margin:0 0 14px;
+  }
+
+  table{width:100%;border-collapse:collapse;font-size:14px;}
+  th,td{text-align:left;padding:8px 6px;border-bottom:1px solid var(--line);}
+  th{font-size:11px;text-transform:uppercase;color:var(--ink-soft);letter-spacing:.04em;}
+  td input{
+    width:100%;border:1px solid var(--line);border-radius:6px;padding:6px 8px;
+    font-family:'Inter',sans-serif;font-size:13px;
+  }
+  td.num{font-family:'Space Mono',monospace;}
+  .owner-actions{display:flex;gap:8px;margin-top:10px;}
+  .remove-row{background:none;border:none;color:var(--red);cursor:pointer;font-size:16px;padding:2px 6px;}
+
+  .house-summary{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+    gap:12px;
+  }
+  .stat{background:#F7F6F1;border-radius:10px;padding:14px;}
+  .stat .s-label{font-size:11px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.05em;}
+  .stat .s-value{font-family:'Space Mono',monospace;font-size:22px;margin-top:4px;}
+  .stat.highlight{background:#EAF6ED;}
+  .stat.highlight .s-value{color:var(--green-dim);}
+
+  .warning-box{
+    background:#FBEAE8;border:1px solid #E7B9B3;color:#7A231A;
+    border-radius:8px;padding:10px 14px;font-size:13px;margin-top:12px;
+  }
+
+  .history-controls{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:14px;}
+  .trend-box{
+    margin-top:14px;padding:14px;border-radius:8px;font-size:13px;line-height:1.6;
+    background:#F7F6F1;
+  }
+  .trend-box.up{background:#FBEAE8;color:#7A231A;}
+  .trend-box.down{background:#EAF6ED;color:#1F4E2E;}
+
+  footer{margin-top:24px;text-align:center;color:var(--ink-soft);font-size:12px;}
+  footer p{margin:2px 0;}
+
+  @media (max-width:640px){
+    header h1{font-size:19px;}
+    .stat .s-value{font-size:19px;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div>
+      <h1>Electric Billing</h1>
+      <p>Main house · Net cafe · Car wash</p>
+    </div>
+    <div class="month-field">
+      <label for="propertyLabel">Property</label>
+      <input type="text" id="propertyLabel" value="" placeholder="e.g. Main House">
+    </div>
+    <div class="month-field">
+      <label for="monthLabel">Month</label>
+      <input type="text" id="monthLabel" value="">
+    </div>
+  </header>
+
+  <div class="meters">
+
+    <div class="meter-card">
+      <p class="m-title">Main meter</p>
+      <div class="row-inline">
+        <div class="field"><label>Prev (kWh)</label><input type="number" id="mainPrev" value="0" step="any"></div>
+        <div class="field"><label>Curr (kWh)</label><input type="number" id="mainCurr" value="0" step="any"></div>
+      </div>
+      <div class="field"><label>Total bill (₱)</label><input type="number" id="totalBill" value="0" step="any"></div>
+      <div class="readout">
+        <span class="label">Rate</span>
+        <span><span class="value" id="rateOut">0.0000</span><span class="unit">₱/kWh</span></span>
+      </div>
+    </div>
+
+    <div class="meter-card">
+      <p class="m-title">Net cafe (sub 1)</p>
+      <div class="row-inline">
+        <div class="field"><label>Prev (kWh)</label><input type="number" id="s1Prev" value="0" step="any"></div>
+        <div class="field"><label>Curr (kWh)</label><input type="number" id="s1Curr" value="0" step="any"></div>
+      </div>
+      <div class="readout">
+        <span class="label">Usage</span>
+        <span><span class="value" id="s1KwhOut">0.00</span><span class="unit">kWh</span></span>
+      </div>
+      <div class="readout" style="margin-top:6px;">
+        <span class="label">Bill</span>
+        <span><span class="value" id="s1BillOut">0.00</span><span class="unit">₱</span></span>
+      </div>
+    </div>
+
+    <div class="meter-card">
+      <p class="m-title">Car wash (sub 2)</p>
+      <div class="row-inline">
+        <div class="field"><label>Prev (kWh)</label><input type="number" id="s2Prev" value="0" step="any"></div>
+        <div class="field"><label>Curr (kWh)</label><input type="number" id="s2Curr" value="0" step="any"></div>
+      </div>
+      <div class="readout">
+        <span class="label">Usage</span>
+        <span><span class="value" id="s2KwhOut">0.00</span><span class="unit">kWh</span></span>
+      </div>
+      <div class="readout" style="margin-top:6px;">
+        <span class="label">Bill</span>
+        <span><span class="value" id="s2BillOut">0.00</span><span class="unit">₱</span></span>
+      </div>
+    </div>
+
+    <div class="meter-card house">
+      <p class="m-title">House (main area)</p>
+      <p style="font-size:12px;color:#9C998D;margin:0 0 12px;">Main total minus net cafe minus car wash</p>
+      <div class="readout">
+        <span class="label">House usage</span>
+        <span><span class="value" id="houseKwhOut">0.00</span><span class="unit">kWh</span></span>
+      </div>
+      <div class="readout" style="margin-top:6px;">
+        <span class="label">House bill</span>
+        <span><span class="value" id="houseBillOut">0.00</span><span class="unit">₱</span></span>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="bar">
+    <button class="primary" id="calcBtn">Calculate all</button>
+    <button class="ghost" id="saveBtn">Save this month</button>
+  </div>
+  <div id="warningArea"></div>
+
+  <section class="card">
+    <h2>Net cafe breakdown (owners)</h2>
+    <table id="ownersTable">
+      <thead>
+        <tr><th>Owner name</th><th>Units</th><th>Cost share (₱)</th><th></th></tr>
+      </thead>
+      <tbody id="ownersBody"></tbody>
+    </table>
+    <div class="owner-actions">
+      <button class="ghost" id="addOwnerBtn">Add owner</button>
+      <button class="ghost" id="clearOwnersBtn">Clear owners</button>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="history-controls">
+      <h2 style="margin:0;">kWh history</h2>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <select id="propertyFilter" style="font-family:'Inter',sans-serif;font-size:13px;border:1px solid var(--line);border-radius:6px;padding:7px 10px;"></select>
+        <button class="ghost" id="exportBtn">Export CSV</button>
+        <button class="danger-ghost" id="clearHistoryBtn">Clear history</button>
+      </div>
+    </div>
+    <div id="historyTableWrap"></div>
+    <div id="trendWrap"></div>
+  </section>
+
+  <footer>
+    <p>History is saved in this browser only (localStorage), grouped by the Property name above. Use Export CSV to back it up or move it to another device.</p>
+  </footer>
+
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+
+function monthDefault(){
+  const d = new Date();
+  return d.toLocaleString('en-US', { month:'long', year:'numeric' });
+}
+$('monthLabel').value = monthDefault();
+
+const LAST_PROPERTY_KEY = 'electricBillingLastProperty';
+$('propertyLabel').value = localStorage.getItem(LAST_PROPERTY_KEY) || 'Main House';
+$('propertyLabel').addEventListener('input', () => {
+  localStorage.setItem(LAST_PROPERTY_KEY, $('propertyLabel').value.trim() || 'Main House');
+  populatePropertyFilter($('propertyLabel').value.trim() || 'Main House');
+});
+
+function num(id){
+  const v = parseFloat($(id).value);
+  return isNaN(v) ? 0 : v;
+}
+function fmt(n, d=2){
+  if (!isFinite(n)) return (0).toFixed(d);
+  return n.toFixed(d);
+}
+
+let owners = [
+  { name:'Owner 1', units:1 },
+  { name:'Owner 2', units:1 }
+];
+let lastCalc = null;
+
+function renderOwners(){
+  const body = $('ownersBody');
+  body.innerHTML = '';
+  owners.forEach((o, i) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><input type="text" value="${o.name}" data-idx="${i}" data-field="name"></td>
+      <td><input type="number" value="${o.units}" step="any" data-idx="${i}" data-field="units" style="max-width:90px;"></td>
+      <td class="num" data-share-idx="${i}">0.00</td>
+      <td><button class="remove-row" data-idx="${i}" title="Remove owner">&times;</button></td>
+    `;
+    body.appendChild(tr);
+  });
+  body.querySelectorAll('input').forEach(inp => {
+    inp.addEventListener('input', e => {
+      const idx = +e.target.dataset.idx;
+      const field = e.target.dataset.field;
+      owners[idx][field] = e.target.value;
+      updateOwnerShares();
+    });
+  });
+  body.querySelectorAll('.remove-row').forEach(btn => {
+    btn.addEventListener('click', e => {
+      owners.splice(+e.target.dataset.idx, 1);
+      renderOwners();
+      updateOwnerShares();
+    });
+  });
+  updateOwnerShares();
+}
+
+function updateOwnerShares(){
+  const totalUnits = owners.reduce((a,o)=>a+(parseFloat(o.units)||0),0);
+  const cafeBill = lastCalc ? lastCalc.s1Bill : 0;
+  owners.forEach((o, i) => {
+    const share = totalUnits > 0 ? (parseFloat(o.units)||0)/totalUnits*cafeBill : 0;
+    const cell = document.querySelector(`[data-share-idx="${i}"]`);
+    if (cell) cell.textContent = fmt(share);
+  });
+}
+
+$('addOwnerBtn').addEventListener('click', () => {
+  owners.push({ name:'Owner ' + (owners.length+1), units:1 });
+  renderOwners();
+});
+$('clearOwnersBtn').addEventListener('click', () => {
+  owners = [];
+  renderOwners();
+});
+
+function calculate(){
+  const warningArea = $('warningArea');
+  warningArea.innerHTML = '';
+
+  const mPrev = num('mainPrev');
+  const mCurr = num('mainCurr');
+  const totalCash = num('totalBill');
+  const totalKwh = mCurr - mPrev;
+
+  if (totalKwh <= 0){
+    warningArea.innerHTML = '<div class="warning-box">Main meter Curr must be greater than Prev.</div>';
+    return;
+  }
+
+  const rate = totalCash / totalKwh;
+  $('rateOut').textContent = fmt(rate, 4);
+
+  const s1Prev = num('s1Prev'), s1Curr = num('s1Curr');
+  const s1Kwh = s1Curr - s1Prev;
+  const s1Bill = s1Kwh * rate;
+  $('s1KwhOut').textContent = fmt(s1Kwh);
+  $('s1BillOut').textContent = fmt(s1Bill);
+
+  const s2Prev = num('s2Prev'), s2Curr = num('s2Curr');
+  const s2Kwh = s2Curr - s2Prev;
+  const s2Bill = s2Kwh * rate;
+  $('s2KwhOut').textContent = fmt(s2Kwh);
+  $('s2BillOut').textContent = fmt(s2Bill);
+
+  const houseKwh = totalKwh - s1Kwh - s2Kwh;
+  const houseBill = houseKwh * rate;
+  $('houseKwhOut').textContent = fmt(houseKwh);
+  $('houseBillOut').textContent = fmt(houseBill);
+
+  if (houseKwh < 0){
+    warningArea.innerHTML = '<div class="warning-box">Net cafe + car wash kWh is more than the main meter total. Check the sub-meter readings.</div>';
+  }
+
+  lastCalc = {
+    property: $('propertyLabel').value.trim() || 'Main House',
+    month: $('monthLabel').value.trim() || monthDefault(),
+    mPrev, mCurr, totalKwh, totalCash, rate,
+    s1Kwh, s1Bill, s2Kwh, s2Bill, houseKwh, houseBill
+  };
+  updateOwnerShares();
+}
+
+$('calcBtn').addEventListener('click', calculate);
+
+const HISTORY_KEY = 'electricBillingHistory';
+
+function loadHistory(){
+  try {
+    return JSON.parse(localStorage.getItem(HISTORY_KEY)) || [];
+  } catch(e){ return []; }
+}
+function saveHistoryArr(arr){
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(arr));
+}
+
+$('saveBtn').addEventListener('click', () => {
+  if (!lastCalc){
+    calculate();
+    if (!lastCalc) return;
+  }
+  const history = loadHistory();
+  history.push(lastCalc);
+  saveHistoryArr(history);
+  populatePropertyFilter(lastCalc.property);
+  renderHistory();
+});
+
+function getDistinctProperties(history){
+  const set = new Set(history.map(r => r.property || 'Main House'));
+  return Array.from(set).sort();
+}
+
+function populatePropertyFilter(preferredValue){
+  const history = loadHistory();
+  const properties = getDistinctProperties(history);
+  const select = $('propertyFilter');
+  const currentSelection = select.value;
+
+  let options = '<option value="__all__">All properties</option>';
+  options += properties.map(p => `<option value="${p}">${p}</option>`).join('');
+  select.innerHTML = options;
+
+  if (preferredValue && properties.includes(preferredValue)){
+    select.value = preferredValue;
+  } else if (properties.includes(currentSelection)){
+    select.value = currentSelection;
+  } else {
+    select.value = '__all__';
+  }
+}
+
+$('propertyFilter').addEventListener('change', renderHistory);
+
+$('clearHistoryBtn').addEventListener('click', () => {
+  const filterValue = $('propertyFilter').value;
+  const history = loadHistory();
+  if (history.length === 0){ return; }
+
+  if (filterValue === '__all__'){
+    if (confirm('Clear ALL saved months for every property in this browser? This cannot be undone.')){
+      localStorage.removeItem(HISTORY_KEY);
+      populatePropertyFilter();
+      renderHistory();
+    }
+  } else {
+    if (confirm(`Clear all saved months for "${filterValue}" only? This cannot be undone.`)){
+      const remaining = history.filter(r => (r.property || 'Main House') !== filterValue);
+      saveHistoryArr(remaining);
+      populatePropertyFilter();
+      renderHistory();
+    }
+  }
+});
+
+$('exportBtn').addEventListener('click', () => {
+  const history = filteredHistory();
+  if (history.length === 0){ alert('No history to export yet.'); return; }
+  const header = 'Property,Month,MainPrevKwh,MainCurrKwh,MainTotalKwh,TotalCash,RatePerKwh,CafeKwh,CafeBill,CarWashKwh,CarWashBill,HouseKwh,HouseBill';
+  const rows = history.map(r => [
+    r.property || 'Main House', r.month, r.mPrev, r.mCurr, r.totalKwh, r.totalCash, r.rate.toFixed(4),
+    r.s1Kwh, r.s1Bill.toFixed(2), r.s2Kwh, r.s2Bill.toFixed(2), r.houseKwh.toFixed(2), r.houseBill.toFixed(2)
+  ].join(','));
+  const csv = [header, ...rows].join('\n');
+  const blob = new Blob([csv], { type:'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'electric_history.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+});
+
+function filteredHistory(){
+  const history = loadHistory();
+  const filterValue = $('propertyFilter').value;
+  if (filterValue === '__all__') return history;
+  return history.filter(r => (r.property || 'Main House') === filterValue);
+}
+
+function renderHistory(){
+  const history = filteredHistory();
+  const showPropertyColumn = $('propertyFilter').value === '__all__';
+  const wrap = $('historyTableWrap');
+  const trendWrap = $('trendWrap');
+
+  if (history.length === 0){
+    wrap.innerHTML = '<p style="color:var(--ink-soft);font-size:13px;">No months saved yet for this property. Calculate, then click Save this month.</p>';
+    trendWrap.innerHTML = '';
+    return;
+  }
+
+  let rows = history.map(r => `
+    <tr>
+      ${showPropertyColumn ? `<td>${r.property || 'Main House'}</td>` : ''}
+      <td>${r.month}</td>
+      <td class="num">${fmt(r.totalKwh)}</td>
+      <td class="num">${fmt(r.s1Kwh)}</td>
+      <td class="num">${fmt(r.s2Kwh)}</td>
+      <td class="num">${fmt(r.houseKwh)}</td>
+      <td class="num">${fmt(r.totalCash)}</td>
+    </tr>
+  `).join('');
+
+  wrap.innerHTML = `
+    <table>
+      <thead><tr>${showPropertyColumn ? '<th>Property</th>' : ''}<th>Month</th><th>Main total kWh</th><th>Cafe kWh</th><th>Car wash kWh</th><th>House kWh</th><th>Total cash</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+  `;
+
+  if (showPropertyColumn){
+    trendWrap.innerHTML = '<div class="trend-box">Select a single property above to see its house kWh trend.</div>';
+    return;
+  }
+
+  if (history.length < 2){
+    trendWrap.innerHTML = '<div class="trend-box">Save at least 2 months for this property to see a trend on house kWh usage.</div>';
+    return;
+  }
+
+  const first = history[0].houseKwh;
+  const last = history[history.length-1].houseKwh;
+
+  if (last < first){
+    const pct = (100 * (first-last) / first).toFixed(1);
+    trendWrap.innerHTML = `<div class="trend-box down">
+      House kWh usage went from ${fmt(first)} to ${fmt(last)} (down ${pct}%).
+      Solar does appear to be reducing the house's grid consumption.
+      If the peso bill hasn't dropped as much, check whether net cafe or car wash usage grew,
+      or whether the utility has minimum charges or rate increases eating into the savings.
+    </div>`;
+  } else {
+    trendWrap.innerHTML = `<div class="trend-box up">
+      House kWh usage went from ${fmt(first)} to ${fmt(last)} — it has not gone down.
+      This suggests solar generation isn't actually reaching or offsetting the house's own load.
+      Worth checking: is solar wired into the main panel or only specific outlets, is there an
+      approved net-metering agreement with the utility, and has household usage increased at the same time.
+    </div>`;
+  }
+}
+
+populatePropertyFilter($('propertyLabel').value.trim() || 'Main House');
+renderOwners();
+renderHistory();
+</script>
+</body>
+</html>
