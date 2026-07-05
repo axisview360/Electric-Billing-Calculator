@@ -125,12 +125,14 @@
   }
   .month-field{display:flex;flex-direction:column;gap:3px;min-width:140px;}
   .month-field label{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:#A9A79A;font-weight:600;}
-  .month-field input{
+  .month-field input, .month-field select{
     font-family:'Space Mono',monospace;border:none;background:transparent;
     font-size:15px;color:#F5F2E8;padding:2px 0;border-bottom:2px solid rgba(255,255,255,0.18);
     transition:border-color .15s ease;min-width:150px;
   }
-  .month-field input:focus{outline:none;border-bottom-color:var(--brass);}
+  .month-field select{cursor:pointer;}
+  .month-field select option{background:#171E1A;color:#F5F2E8;}
+  .month-field input:focus, .month-field select:focus{outline:none;border-bottom-color:var(--brass);}
 
   /* ================= METER FACEPLATES ================= */
   .meters{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:18px;margin:20px 0 24px;}
@@ -419,12 +421,16 @@
 
     <div class="toolbar">
       <div class="month-field">
-        <label for="propertyLabel">Property</label>
-        <input type="text" id="propertyLabel" value="" placeholder="e.g. Main House">
+        <label for="propertyLabel">Property profile</label>
+        <select id="propertyLabel"></select>
       </div>
       <div class="month-field">
-        <label for="monthLabel">Month</label>
-        <input type="text" id="monthLabel" value="">
+        <label for="monthSelect">Month</label>
+        <div style="display:flex;gap:8px;">
+          <select id="monthSelect" style="min-width:118px;"></select>
+          <select id="yearSelect" style="min-width:78px;"></select>
+        </div>
+        <input type="hidden" id="monthLabel">
       </div>
     </div>
   </div>
@@ -646,18 +652,132 @@ $('gearBtn').addEventListener('click', () => {
 applySettings();
 
 /* ============== CORE APP (same logic as before) ============== */
+const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const YEAR_RANGE_BACK = 5, YEAR_RANGE_FWD = 5;
+
 function monthDefault(){
   const d = new Date();
   return d.toLocaleString('en-US', { month:'long', year:'numeric' });
 }
-$('monthLabel').value = monthDefault();
 
+function populateMonthYearSelects(){
+  const now = new Date();
+  $('monthSelect').innerHTML = MONTH_NAMES.map(m => `<option value="${m}">${m}</option>`).join('');
+  $('monthSelect').value = MONTH_NAMES[now.getMonth()];
+
+  const currentYear = now.getFullYear();
+  let yearOptions = '';
+  for (let y = currentYear - YEAR_RANGE_BACK; y <= currentYear + YEAR_RANGE_FWD; y++){
+    yearOptions += `<option value="${y}">${y}</option>`;
+  }
+  $('yearSelect').innerHTML = yearOptions;
+  $('yearSelect').value = currentYear;
+}
+
+function syncMonthLabel(){
+  $('monthLabel').value = `${$('monthSelect').value} ${$('yearSelect').value}`;
+}
+
+function setMonthYear(monthName, year){
+  if (MONTH_NAMES.includes(monthName)) $('monthSelect').value = monthName;
+  const yearOpts = Array.from($('yearSelect').options).map(o => o.value);
+  if (!yearOpts.includes(String(year))){
+    // extend the year dropdown if we've rolled past its current range
+    $('yearSelect').innerHTML += `<option value="${year}">${year}</option>`;
+  }
+  $('yearSelect').value = year;
+  syncMonthLabel();
+}
+
+function advanceToNextMonth(){
+  const idx = MONTH_NAMES.indexOf($('monthSelect').value);
+  let year = parseInt($('yearSelect').value, 10);
+  let nextIdx = idx + 1;
+  if (nextIdx > 11){ nextIdx = 0; year += 1; }
+  setMonthYear(MONTH_NAMES[nextIdx], year);
+}
+
+populateMonthYearSelects();
+syncMonthLabel();
+$('monthSelect').addEventListener('change', syncMonthLabel);
+$('yearSelect').addEventListener('change', syncMonthLabel);
+
+/* ============== PROPERTY PROFILES ============== */
+const PROFILES_KEY = 'electricBillingProfiles';
 const LAST_PROPERTY_KEY = 'electricBillingLastProperty';
-$('propertyLabel').value = localStorage.getItem(LAST_PROPERTY_KEY) || 'Main House';
-$('propertyLabel').addEventListener('input', () => {
-  localStorage.setItem(LAST_PROPERTY_KEY, $('propertyLabel').value.trim() || 'Main House');
-  populatePropertyFilter($('propertyLabel').value.trim() || 'Main House');
+
+function loadProfiles(){
+  let stored = [];
+  try { stored = JSON.parse(localStorage.getItem(PROFILES_KEY)) || []; } catch(e){ stored = []; }
+  const historyProps = getDistinctProperties(loadHistory());
+  const merged = Array.from(new Set([...stored, ...historyProps]));
+  return merged.length ? merged.sort() : ['Main House'];
+}
+function saveProfiles(list){
+  localStorage.setItem(PROFILES_KEY, JSON.stringify(Array.from(new Set(list))));
+}
+
+function populateProfileSelect(selected){
+  const profiles = loadProfiles();
+  const select = $('propertyLabel');
+  select.innerHTML = profiles.map(p => `<option value="${p}">${p}</option>`).join('')
+    + '<option value="__new__">+ Add new profile…</option>';
+  if (selected && profiles.includes(selected)){
+    select.value = selected;
+  } else {
+    select.value = profiles[0];
+  }
+}
+
+$('propertyLabel').addEventListener('change', () => {
+  if ($('propertyLabel').value === '__new__'){
+    const name = prompt('Name this property profile (e.g. "House Number 2"):');
+    const trimmed = (name || '').trim();
+    if (!trimmed){
+      populateProfileSelect(localStorage.getItem(LAST_PROPERTY_KEY) || 'Main House');
+      return;
+    }
+    const profiles = loadProfiles();
+    if (!profiles.includes(trimmed)) profiles.push(trimmed);
+    saveProfiles(profiles);
+    populateProfileSelect(trimmed);
+  }
+  const chosen = $('propertyLabel').value;
+  localStorage.setItem(LAST_PROPERTY_KEY, chosen);
+  populatePropertyFilter(chosen);
+  loadCarryForward(chosen);
 });
+
+/* Pre-fill this month's Prev readings from last month's Curr readings for
+   the selected profile, so only Curr + Total bill need typing each time.
+   Everything stays editable. */
+function loadCarryForward(property){
+  const history = loadHistory().filter(r => (r.property || 'Main House') === property);
+  const last = history[history.length - 1];
+
+  $('mainCurr').value = '0';
+  $('totalBill').value = '0';
+  $('s1Curr').value = '0';
+  $('s2Curr').value = '0';
+
+  if (last){
+    $('mainPrev').value = last.mCurr ?? 0;
+    $('s1Prev').value = (last.s1Curr !== undefined ? last.s1Curr : (last.s1Kwh || 0));
+    $('s2Prev').value = (last.s2Curr !== undefined ? last.s2Curr : (last.s2Kwh || 0));
+  } else {
+    $('mainPrev').value = '0';
+    $('s1Prev').value = '0';
+    $('s2Prev').value = '0';
+  }
+
+  $('rateOut').textContent = '0.0000';
+  $('s1KwhOut').textContent = '0.00'; $('s1BillOut').textContent = '0.00';
+  $('s2KwhOut').textContent = '0.00'; $('s2BillOut').textContent = '0.00';
+  $('houseKwhOut').textContent = '0.00'; $('houseBillOut').textContent = '0.00';
+  $('warningArea').innerHTML = '';
+  lastCalc = null;
+  updateOwnerShares();
+}
 
 function num(id){
   const v = parseFloat($(id).value);
@@ -778,10 +898,12 @@ function calculate(){
   }
 
   lastCalc = {
-    property: $('propertyLabel').value.trim() || 'Main House',
+    property: $('propertyLabel').value || 'Main House',
     month: $('monthLabel').value.trim() || monthDefault(),
     mPrev, mCurr, totalKwh, totalCash, rate,
-    s1Kwh, s1Bill, s2Kwh, s2Bill, houseKwh, houseBill
+    s1Prev, s1Curr, s1Kwh, s1Bill,
+    s2Prev, s2Curr, s2Kwh, s2Bill,
+    houseKwh, houseBill
   };
   updateOwnerShares();
 }
@@ -807,8 +929,19 @@ $('saveBtn').addEventListener('click', () => {
   const history = loadHistory();
   history.push(lastCalc);
   saveHistoryArr(history);
+
+  const profiles = loadProfiles();
+  if (!profiles.includes(lastCalc.property)){
+    profiles.push(lastCalc.property);
+    saveProfiles(profiles);
+  }
+
   populatePropertyFilter(lastCalc.property);
   renderHistory();
+
+  const savedProperty = lastCalc.property;
+  advanceToNextMonth();
+  loadCarryForward(savedProperty);
 });
 
 function getDistinctProperties(history){
@@ -861,10 +994,12 @@ $('clearHistoryBtn').addEventListener('click', () => {
 $('exportBtn').addEventListener('click', () => {
   const history = filteredHistory();
   if (history.length === 0){ alert('No history to export yet.'); return; }
-  const header = 'Property,Month,MainPrevKwh,MainCurrKwh,MainTotalKwh,TotalCash,RatePerKwh,Sub1Kwh,Sub1Bill,Sub2Kwh,Sub2Bill,HouseKwh,HouseBill';
+  const header = 'Property,Month,MainPrevKwh,MainCurrKwh,MainTotalKwh,TotalCash,RatePerKwh,Sub1PrevKwh,Sub1CurrKwh,Sub1Kwh,Sub1Bill,Sub2PrevKwh,Sub2CurrKwh,Sub2Kwh,Sub2Bill,HouseKwh,HouseBill';
   const rows = history.map(r => [
     r.property || 'Main House', r.month, r.mPrev, r.mCurr, r.totalKwh, r.totalCash, r.rate.toFixed(4),
-    r.s1Kwh, r.s1Bill.toFixed(2), r.s2Kwh, r.s2Bill.toFixed(2), r.houseKwh.toFixed(2), r.houseBill.toFixed(2)
+    r.s1Prev ?? '', r.s1Curr ?? '', r.s1Kwh, r.s1Bill.toFixed(2),
+    r.s2Prev ?? '', r.s2Curr ?? '', r.s2Kwh, r.s2Bill.toFixed(2),
+    r.houseKwh.toFixed(2), r.houseBill.toFixed(2)
   ].join(','));
   const csv = [header, ...rows].join('\n');
   const blob = new Blob([csv], { type:'text/csv' });
@@ -892,6 +1027,7 @@ $('importFile').addEventListener('change', (e) => {
       const existing = loadHistory();
       const merged = existing.concat(imported);
       saveHistoryArr(merged);
+      populateProfileSelect($('propertyLabel').value);
       populatePropertyFilter();
       renderHistory();
       alert(`Imported ${imported.length} month(s). They are now merged into this browser's history.`);
@@ -906,27 +1042,40 @@ $('importFile').addEventListener('change', (e) => {
 function parseHistoryCSV(text){
   const lines = text.split(/\r?\n/).filter(l => l.trim() !== '');
   if (lines.length < 2) return [];
-  const rows = lines.slice(1); // skip header
+  const headerCols = lines[0].split(',').map(h => h.trim());
+  const idx = name => headerCols.indexOf(name);
+  const get = (cols, name) => {
+    const i = idx(name);
+    return (i === -1 || cols[i] === undefined || cols[i] === '') ? undefined : cols[i];
+  };
+  const num = v => { const n = parseFloat(v); return isNaN(n) ? 0 : n; };
+
   const records = [];
-  for (const line of rows){
+  for (const line of lines.slice(1)){
     const cols = line.split(',');
-    if (cols.length < 13) continue;
-    const [property, month, mPrev, mCurr, totalKwh, totalCash, rate,
-           s1Kwh, s1Bill, s2Kwh, s2Bill, houseKwh, houseBill] = cols;
+    if (cols.length < 5) continue;
+    const s1Curr = get(cols,'Sub1CurrKwh');
+    const s2Curr = get(cols,'Sub2CurrKwh');
+    const s1Prev = get(cols,'Sub1PrevKwh');
+    const s2Prev = get(cols,'Sub2PrevKwh');
     records.push({
-      property: property || 'Main House',
-      month: month || '',
-      mPrev: parseFloat(mPrev) || 0,
-      mCurr: parseFloat(mCurr) || 0,
-      totalKwh: parseFloat(totalKwh) || 0,
-      totalCash: parseFloat(totalCash) || 0,
-      rate: parseFloat(rate) || 0,
-      s1Kwh: parseFloat(s1Kwh) || 0,
-      s1Bill: parseFloat(s1Bill) || 0,
-      s2Kwh: parseFloat(s2Kwh) || 0,
-      s2Bill: parseFloat(s2Bill) || 0,
-      houseKwh: parseFloat(houseKwh) || 0,
-      houseBill: parseFloat(houseBill) || 0
+      property: get(cols,'Property') || 'Main House',
+      month: get(cols,'Month') || '',
+      mPrev: num(get(cols,'MainPrevKwh')),
+      mCurr: num(get(cols,'MainCurrKwh')),
+      totalKwh: num(get(cols,'MainTotalKwh')),
+      totalCash: num(get(cols,'TotalCash')),
+      rate: num(get(cols,'RatePerKwh')),
+      s1Prev: s1Prev !== undefined ? num(s1Prev) : undefined,
+      s1Curr: s1Curr !== undefined ? num(s1Curr) : undefined,
+      s1Kwh: num(get(cols,'Sub1Kwh') ?? get(cols,'CafeKwh')),
+      s1Bill: num(get(cols,'Sub1Bill') ?? get(cols,'CafeBill')),
+      s2Prev: s2Prev !== undefined ? num(s2Prev) : undefined,
+      s2Curr: s2Curr !== undefined ? num(s2Curr) : undefined,
+      s2Kwh: num(get(cols,'Sub2Kwh') ?? get(cols,'CarWashKwh')),
+      s2Bill: num(get(cols,'Sub2Bill') ?? get(cols,'CarWashBill')),
+      houseKwh: num(get(cols,'HouseKwh')),
+      houseBill: num(get(cols,'HouseBill'))
     });
   }
   return records;
@@ -1047,7 +1196,10 @@ function renderHistory(){
   }
 }
 
-populatePropertyFilter($('propertyLabel').value.trim() || 'Main House');
+const initialProfile = localStorage.getItem(LAST_PROPERTY_KEY) || 'Main House';
+populateProfileSelect(initialProfile);
+populatePropertyFilter($('propertyLabel').value);
+loadCarryForward($('propertyLabel').value);
 renderOwners();
 renderHistory();
 </script>
