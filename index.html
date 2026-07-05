@@ -552,6 +552,11 @@
       </h2>
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
         <select id="propertyFilter"></select>
+        <button class="ghost" id="importBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          Import CSV
+        </button>
+        <input type="file" id="importFile" accept=".csv" style="display:none;">
         <button class="ghost" id="exportBtn">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
           Export CSV
@@ -569,7 +574,7 @@
 
   <footer>
     <p>History is saved in this browser only (localStorage), grouped by the Property name above.</p>
-    <p>Use Export CSV to back it up or move it to another device.</p>
+    <p>Use Export CSV on one device, then Import CSV on another to bring your history along.</p>
     <p class="brand-credit" id="footerCredit">WATTSPLIT</p>
   </footer>
 
@@ -870,6 +875,62 @@ $('exportBtn').addEventListener('click', () => {
   a.click();
   URL.revokeObjectURL(url);
 });
+
+$('importBtn').addEventListener('click', () => $('importFile').click());
+
+$('importFile').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (evt) => {
+    try {
+      const imported = parseHistoryCSV(evt.target.result);
+      if (imported.length === 0){
+        alert('No valid rows found in that file. Make sure it is a CSV exported from this same tool.');
+        return;
+      }
+      const existing = loadHistory();
+      const merged = existing.concat(imported);
+      saveHistoryArr(merged);
+      populatePropertyFilter();
+      renderHistory();
+      alert(`Imported ${imported.length} month(s). They are now merged into this browser's history.`);
+    } catch(err){
+      alert('Could not read that file. Make sure it is a CSV exported from this tool.');
+    }
+  };
+  reader.readAsText(file);
+  e.target.value = ''; // allow re-importing the same file name later
+});
+
+function parseHistoryCSV(text){
+  const lines = text.split(/\r?\n/).filter(l => l.trim() !== '');
+  if (lines.length < 2) return [];
+  const rows = lines.slice(1); // skip header
+  const records = [];
+  for (const line of rows){
+    const cols = line.split(',');
+    if (cols.length < 13) continue;
+    const [property, month, mPrev, mCurr, totalKwh, totalCash, rate,
+           s1Kwh, s1Bill, s2Kwh, s2Bill, houseKwh, houseBill] = cols;
+    records.push({
+      property: property || 'Main House',
+      month: month || '',
+      mPrev: parseFloat(mPrev) || 0,
+      mCurr: parseFloat(mCurr) || 0,
+      totalKwh: parseFloat(totalKwh) || 0,
+      totalCash: parseFloat(totalCash) || 0,
+      rate: parseFloat(rate) || 0,
+      s1Kwh: parseFloat(s1Kwh) || 0,
+      s1Bill: parseFloat(s1Bill) || 0,
+      s2Kwh: parseFloat(s2Kwh) || 0,
+      s2Bill: parseFloat(s2Bill) || 0,
+      houseKwh: parseFloat(houseKwh) || 0,
+      houseBill: parseFloat(houseBill) || 0
+    });
+  }
+  return records;
+}
 
 function filteredHistory(){
   const history = loadHistory();
