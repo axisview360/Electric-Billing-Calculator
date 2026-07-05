@@ -564,6 +564,20 @@ function num(id){
   const v = parseFloat($(id).value);
   return isNaN(v) ? 0 : v;
 }
+
+/* Clear a "0" placeholder value on focus so numbers can be typed straight in,
+   and restore "0" on blur if the field was left empty. Applies to any
+   number input, including ones added later (owner units). */
+function attachZeroClear(el){
+  el.addEventListener('focus', () => {
+    if (el.value === '0') el.value = '';
+    else el.select();
+  });
+  el.addEventListener('blur', () => {
+    if (el.value.trim() === '') el.value = '0';
+  });
+}
+document.querySelectorAll('input[type="number"]').forEach(attachZeroClear);
 function fmt(n, d=2){
   if (!isFinite(n)) return (0).toFixed(d);
   return n.toFixed(d);
@@ -589,6 +603,7 @@ function renderOwners(){
     body.appendChild(tr);
   });
   body.querySelectorAll('input').forEach(inp => {
+    if (inp.type === 'number') attachZeroClear(inp);
     inp.addEventListener('input', e => {
       const idx = +e.target.dataset.idx;
       const field = e.target.dataset.field;
