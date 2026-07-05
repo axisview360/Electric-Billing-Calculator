@@ -3,209 +3,363 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Electric Billing — Main / Net Cafe / Car Wash</title>
+<meta name="theme-color" content="#171E1A">
+<title>WattSplit — Multi-Meter Electric Billing</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 24 24%22><text y=%2220%22 font-size=%2220%22>⚡</text></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>
   :root{
-    --page-bg:#EFEDE6;
-    --panel:#1F2723;
-    --panel-2:#293530;
-    --ink:#1F2723;
-    --ink-soft:#5B6058;
-    --line:#D8D5C9;
-    --amber:#F2B705;
-    --amber-dim:#8a6c1f;
-    --green:#5FBE7A;
-    --green-dim:#2f6a45;
-    --teal:#145C54;
-    --teal-hover:#0e433d;
-    --red:#B23A2E;
-    --card-bg:#FFFFFF;
+    --paper:#F2EFE6;
+    --paper-dim:#E7E2D2;
+    --ink:#1B221D;
+    --ink-soft:#5C6258;
+    --line:#D9D3C0;
+    --copper:#B5652D;
+    --copper-dark:#8F4F22;
+    --brass:#D7A94A;
+    --brass-dim:#8a6c1f;
+    --verdigris:#4C7A6B;
+    --verdigris-dark:#33564A;
+    --rust:#9C3B2E;
+    --panel:#171E1A;
+    --panel-2:#12211C;
+    --groove:#0B100D;
   }
   *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
   body{
     margin:0;
-    background:var(--page-bg);
+    background:
+      radial-gradient(1100px 380px at 8% -8%, rgba(181,101,45,0.07), transparent),
+      radial-gradient(900px 320px at 95% 0%, rgba(76,122,107,0.06), transparent),
+      var(--paper);
     color:var(--ink);
     font-family:'Inter',sans-serif;
-    padding:24px 16px 80px;
+    padding:0 18px 90px;
   }
-  .wrap{max-width:980px;margin:0 auto;}
+  .wrap{max-width:1040px;margin:0 auto;}
+  ::selection{background:rgba(215,169,74,0.35);}
 
-  header{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:24px;}
-  header h1{
-    font-family:'Space Mono',monospace;
-    font-size:22px;
-    font-weight:700;
-    margin:0;
-    letter-spacing:-0.02em;
+  /* ================= NAMEPLATE HEADER ================= */
+  .nameplate{
+    margin:26px 0 22px;
+    background:linear-gradient(155deg, var(--panel), var(--panel-2));
+    border-radius:16px;
+    padding:22px 26px;
+    color:#EDEAE0;
+    position:relative;
+    box-shadow:0 10px 26px rgba(15,20,17,0.28);
+    overflow:hidden;
   }
-  header p{margin:4px 0 0;color:var(--ink-soft);font-size:13px;}
-  .month-field{display:flex;flex-direction:column;gap:4px;}
-  .month-field label{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-soft);}
-  .month-field input{font-family:'Space Mono',monospace;}
+  .nameplate::before{
+    content:"";position:absolute;inset:0;pointer-events:none;
+    background:
+      repeating-linear-gradient(115deg, rgba(255,255,255,0.025) 0 2px, transparent 2px 5px);
+  }
+  .nameplate-top{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;position:relative;}
+  .plate-eyebrow{
+    font-family:'Space Mono',monospace;font-size:10.5px;letter-spacing:.16em;
+    color:var(--brass);text-transform:uppercase;margin:0 0 6px;
+    display:flex;align-items:center;gap:8px;
+  }
+  .plate-eyebrow .dot{width:6px;height:6px;border-radius:50%;background:var(--brass);box-shadow:0 0 6px var(--brass);}
+  .brand-title{
+    font-family:'Bebas Neue',sans-serif;
+    font-size:clamp(30px,5vw,42px);
+    letter-spacing:.03em;
+    margin:0;line-height:1;color:#F5F2E8;
+  }
+  .brand-title span{color:var(--brass);}
+  .plate-sub{margin:8px 0 0;color:#A9A79A;font-size:13px;max-width:46ch;}
 
-  .meters{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;margin-bottom:20px;}
+  .gear-btn{
+    background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.14);
+    color:#EDEAE0;width:40px;height:40px;border-radius:10px;
+    display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;
+    transition:background .15s ease, transform .3s ease;
+  }
+  .gear-btn:hover{background:rgba(255,255,255,0.12);}
+  .gear-btn.open svg{transform:rotate(35deg);}
+  .gear-btn svg{width:19px;height:19px;transition:transform .3s ease;}
+
+  /* Settings drawer */
+  .settings-drawer{
+    max-height:0;overflow:hidden;transition:max-height .28s ease;
+    position:relative;
+  }
+  .settings-drawer.open{max-height:260px;}
+  .settings-grid{
+    display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+    gap:14px;padding-top:18px;margin-top:18px;
+    border-top:1px solid rgba(255,255,255,0.1);
+    position:relative;
+  }
+  .settings-field label{
+    display:block;font-size:10px;text-transform:uppercase;letter-spacing:.08em;
+    color:#A9A79A;margin-bottom:5px;
+  }
+  .settings-field input{
+    width:100%;background:rgba(0,0,0,0.28);border:1px solid rgba(255,255,255,0.14);
+    color:#F5F2E8;border-radius:7px;padding:8px 10px;font-family:'Inter',sans-serif;font-size:13.5px;
+  }
+  .settings-field input:focus{outline:none;border-color:var(--brass);}
+  .settings-note{grid-column:1/-1;font-size:11.5px;color:#8F8D80;margin-top:2px;}
+
+  /* Toolbar (property/month) sits inside nameplate footer */
+  .toolbar{
+    display:flex;gap:22px;flex-wrap:wrap;margin-top:18px;padding-top:16px;
+    border-top:1px solid rgba(255,255,255,0.1);position:relative;
+  }
+  .month-field{display:flex;flex-direction:column;gap:3px;min-width:140px;}
+  .month-field label{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:#A9A79A;font-weight:600;}
+  .month-field input{
+    font-family:'Space Mono',monospace;border:none;background:transparent;
+    font-size:15px;color:#F5F2E8;padding:2px 0;border-bottom:2px solid rgba(255,255,255,0.18);
+    transition:border-color .15s ease;min-width:150px;
+  }
+  .month-field input:focus{outline:none;border-bottom-color:var(--brass);}
+
+  /* ================= METER FACEPLATES ================= */
+  .meters{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:18px;margin:20px 0 24px;}
 
   .meter-card{
-    background:var(--panel);
-    border-radius:12px;
-    padding:18px 18px 16px;
+    background:linear-gradient(160deg,#20281F 0%, #171E1A 100%);
+    border-radius:14px;
+    padding:20px 20px 18px;
     color:#EDEBE3;
+    position:relative;
+    box-shadow:0 6px 16px rgba(15,20,17,0.24), inset 0 1px 0 rgba(255,255,255,0.04);
+    border:1px solid #2B332C;
+    transition:transform .15s ease, box-shadow .15s ease;
   }
-  .meter-card.house{background:var(--panel-2);}
+  .meter-card:hover{transform:translateY(-2px);box-shadow:0 10px 22px rgba(15,20,17,0.3), inset 0 1px 0 rgba(255,255,255,0.04);}
+  .meter-card.house{
+    background:linear-gradient(160deg,#1D2C24 0%, #12211C 100%);
+    border-color:rgba(76,122,107,0.55);
+  }
+  /* corner screws */
+  .meter-card::before,.meter-card::after,
+  .meter-card .screw-br,.meter-card .screw-bl{
+    content:"";position:absolute;width:7px;height:7px;border-radius:50%;
+    background:radial-gradient(circle at 35% 30%, #C9C4B4, #6B6656 70%, #3a3628);
+    box-shadow:0 1px 2px rgba(0,0,0,0.5);
+  }
+  .meter-card::before{top:10px;left:10px;}
+  .meter-card::after{top:10px;right:10px;}
+  .meter-card .screw-bl{position:absolute;bottom:10px;left:10px;width:7px;height:7px;border-radius:50%;background:radial-gradient(circle at 35% 30%, #C9C4B4, #6B6656 70%, #3a3628);box-shadow:0 1px 2px rgba(0,0,0,0.5);}
+  .meter-card .screw-br{position:absolute;bottom:10px;right:10px;width:7px;height:7px;border-radius:50%;background:radial-gradient(circle at 35% 30%, #C9C4B4, #6B6656 70%, #3a3628);box-shadow:0 1px 2px rgba(0,0,0,0.5);}
+
   .meter-card .m-title{
     font-family:'Space Mono',monospace;
-    font-size:13px;
-    letter-spacing:.08em;
-    text-transform:uppercase;
-    color:#B9B6AA;
-    margin:0 0 12px;
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
+    font-size:12px;letter-spacing:.1em;text-transform:uppercase;
+    color:#C7C4B7;margin:2px 0 14px;display:flex;align-items:center;gap:8px;
   }
+  .m-title .icon{width:15px;height:15px;color:var(--brass);flex-shrink:0;}
+  .meter-card.house .m-title .icon{color:var(--verdigris);}
+  .meter-card.house .m-title{color:#B7E7C4;}
+  .house-sub{font-size:11.5px;color:#8D9A91;margin:-9px 0 12px;}
+
   .row-inline{display:flex;gap:10px;margin-bottom:10px;}
   .field{flex:1;display:flex;flex-direction:column;gap:4px;}
-  .field label{font-size:11px;color:#9C998D;}
+  .field label{font-size:10.5px;color:#9C998D;text-transform:uppercase;letter-spacing:.03em;}
   .field input{
-    background:#0F1512;
+    background:var(--groove);
     border:1px solid #384038;
-    color:#EDEBE3;
-    border-radius:6px;
-    padding:8px 10px;
-    font-family:'Space Mono',monospace;
-    font-size:14px;
-    width:100%;
+    color:#EDEBE3;border-radius:7px;padding:8px 10px;
+    font-family:'Space Mono',monospace;font-size:14px;width:100%;
+    transition:border-color .15s ease, box-shadow .15s ease;
   }
-  .field input:focus{outline:2px solid var(--amber);outline-offset:1px;}
+  .field input:focus{outline:none;border-color:var(--brass);box-shadow:0 0 0 3px rgba(215,169,74,0.16);}
 
+  /* digit-wheel readout */
   .readout{
-    margin-top:8px;
-    background:#0F1512;
-    border-radius:8px;
-    padding:10px 12px;
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
+    margin-top:9px;
+    background:var(--groove);
+    border-radius:9px;
+    padding:11px 13px;
+    display:flex;justify-content:space-between;align-items:center;
+    border:1px solid #2A322C;
+    box-shadow:inset 0 2px 5px rgba(0,0,0,0.45);
   }
-  .readout .label{font-size:11px;color:#9C998D;text-transform:uppercase;letter-spacing:.05em;}
-  .readout .value{font-family:'Space Mono',monospace;font-size:20px;color:var(--amber);}
-  .meter-card.house .readout .value{color:var(--green);}
-  .readout .unit{font-size:11px;color:#7d7a6f;margin-left:4px;}
+  .readout .label{font-size:10.5px;color:#9C998D;text-transform:uppercase;letter-spacing:.06em;}
+  .readout .value{
+    font-family:'Space Mono',monospace;font-size:19px;font-weight:700;
+    color:var(--brass);letter-spacing:.03em;
+    text-shadow:0 0 10px rgba(215,169,74,0.35);
+  }
+  .meter-card.house .readout{border-color:rgba(76,122,107,0.35);}
+  .meter-card.house .readout .value{color:var(--verdigris);text-shadow:0 0 10px rgba(76,122,107,0.35);}
+  .readout .unit{font-size:10.5px;color:#7d7a6f;margin-left:4px;font-weight:400;}
 
-  .bar{display:flex;gap:12px;flex-wrap:wrap;margin:20px 0;}
+  /* ================= BUTTONS ================= */
+  .bar{display:flex;gap:10px;flex-wrap:wrap;margin:4px 0 18px;}
   button{
-    font-family:'Inter',sans-serif;
-    font-weight:600;
-    font-size:14px;
-    border-radius:8px;
-    padding:10px 18px;
-    border:1px solid transparent;
-    cursor:pointer;
+    font-family:'Inter',sans-serif;font-weight:600;font-size:14px;
+    border-radius:9px;padding:11px 20px;border:1px solid transparent;cursor:pointer;
+    display:inline-flex;align-items:center;gap:7px;
+    transition:background .15s ease, border-color .15s ease, transform .1s ease;
   }
-  button.primary{background:var(--teal);color:#fff;}
-  button.primary:hover{background:var(--teal-hover);}
-  button.ghost{background:transparent;color:var(--ink);border-color:var(--line);}
-  button.ghost:hover{background:#fff;}
-  button.danger-ghost{background:transparent;color:var(--red);border-color:#e3c3bf;}
+  button:active{transform:translateY(1px);}
+  button svg{width:15px;height:15px;}
+  button.primary{background:var(--copper);color:#fff;box-shadow:0 3px 10px rgba(181,101,45,0.32);}
+  button.primary:hover{background:var(--copper-dark);}
+  button.ghost{background:#fff;color:var(--ink);border-color:var(--line);}
+  button.ghost:hover{background:#FAF8F1;border-color:#C9C6B8;}
+  button.danger-ghost{background:transparent;color:var(--rust);border-color:#e3c3bf;}
+  button.danger-ghost:hover{background:#FBEAE8;}
 
+  /* ================= CARDS / LEDGER ================= */
   section.card{
-    background:var(--card-bg);
+    background:#FFFDF7;
     border:1px solid var(--line);
-    border-radius:12px;
-    padding:18px 20px;
+    border-radius:14px;
+    padding:22px 24px;
     margin-bottom:20px;
+    box-shadow:0 1px 3px rgba(0,0,0,0.03);
+    position:relative;
   }
   section.card h2{
-    font-family:'Space Mono',monospace;
-    font-size:14px;
-    text-transform:uppercase;
-    letter-spacing:.06em;
-    margin:0 0 14px;
+    font-family:'Bebas Neue',sans-serif;
+    font-size:20px;letter-spacing:.02em;
+    margin:0 0 16px;display:flex;align-items:center;gap:9px;color:var(--ink);
   }
+  section.card h2 .icon{width:17px;height:17px;color:var(--copper);}
 
-  table{width:100%;border-collapse:collapse;font-size:14px;}
-  th,td{text-align:left;padding:8px 6px;border-bottom:1px solid var(--line);}
-  th{font-size:11px;text-transform:uppercase;color:var(--ink-soft);letter-spacing:.04em;}
+  table{width:100%;border-collapse:collapse;font-size:13.5px;}
+  th,td{text-align:left;padding:10px 8px;border-bottom:1px solid var(--line);white-space:nowrap;}
+  th{font-size:10.5px;text-transform:uppercase;color:var(--ink-soft);letter-spacing:.05em;font-weight:600;
+     border-bottom:2px solid var(--ink);}
+  tbody tr:hover{background:#F8F5EB;}
   td input{
-    width:100%;border:1px solid var(--line);border-radius:6px;padding:6px 8px;
+    width:100%;border:1px solid var(--line);border-radius:7px;padding:7px 9px;
     font-family:'Inter',sans-serif;font-size:13px;
   }
+  td input:focus{outline:none;border-color:var(--copper);box-shadow:0 0 0 3px rgba(181,101,45,0.1);}
   td.num{font-family:'Space Mono',monospace;}
-  .owner-actions{display:flex;gap:8px;margin-top:10px;}
-  .remove-row{background:none;border:none;color:var(--red);cursor:pointer;font-size:16px;padding:2px 6px;}
-
-  .house-summary{
-    display:grid;
-    grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
-    gap:12px;
+  .owner-actions{display:flex;gap:8px;margin-top:14px;}
+  .remove-row{
+    background:none;border:none;color:var(--rust);cursor:pointer;
+    font-size:18px;padding:2px 8px;border-radius:6px;line-height:1;
   }
-  .stat{background:#F7F6F1;border-radius:10px;padding:14px;}
-  .stat .s-label{font-size:11px;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.05em;}
-  .stat .s-value{font-family:'Space Mono',monospace;font-size:22px;margin-top:4px;}
-  .stat.highlight{background:#EAF6ED;}
-  .stat.highlight .s-value{color:var(--green-dim);}
+  .remove-row:hover{background:#FBEAE8;}
 
   .warning-box{
     background:#FBEAE8;border:1px solid #E7B9B3;color:#7A231A;
-    border-radius:8px;padding:10px 14px;font-size:13px;margin-top:12px;
+    border-radius:9px;padding:11px 15px;font-size:13px;margin-bottom:16px;
+    display:flex;gap:8px;align-items:flex-start;
+  }
+  .warning-box svg{width:15px;height:15px;flex-shrink:0;margin-top:1px;}
+
+  .history-controls{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:16px;}
+  #propertyFilter{
+    font-family:'Inter',sans-serif;font-size:13px;border:1px solid var(--line);
+    border-radius:8px;padding:9px 12px;background:#fff;color:var(--ink);cursor:pointer;
   }
 
-  .history-controls{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:14px;}
+  .sparkline-wrap{margin-bottom:18px;padding:14px 16px;background:#FAF8F1;border:1px solid var(--line);border-radius:10px;}
+  .sparkline-wrap .sp-label{font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-soft);margin-bottom:8px;}
+  .sparkline-wrap svg{width:100%;height:auto;display:block;}
+
   .trend-box{
-    margin-top:14px;padding:14px;border-radius:8px;font-size:13px;line-height:1.6;
-    background:#F7F6F1;
+    margin-top:14px;padding:14px 16px;border-radius:10px;font-size:13px;line-height:1.65;
+    background:#F5F3E9;display:flex;gap:10px;align-items:flex-start;
   }
+  .trend-box svg{width:17px;height:17px;flex-shrink:0;margin-top:2px;}
   .trend-box.up{background:#FBEAE8;color:#7A231A;}
-  .trend-box.down{background:#EAF6ED;color:#1F4E2E;}
+  .trend-box.down{background:#EAF2EE;color:#25473C;}
 
-  footer{margin-top:24px;text-align:center;color:var(--ink-soft);font-size:12px;}
+  .table-scroll{overflow-x:auto;border-radius:8px;}
+  .empty-note{color:var(--ink-soft);font-size:13px;padding:6px 0;}
+
+  footer{margin-top:28px;text-align:center;color:var(--ink-soft);font-size:12px;line-height:1.7;}
   footer p{margin:2px 0;}
+  footer .brand-credit{font-family:'Space Mono',monospace;letter-spacing:.04em;color:var(--copper-dark);}
 
   @media (max-width:640px){
-    header h1{font-size:19px;}
-    .stat .s-value{font-size:19px;}
+    body{padding:0 12px 60px;}
+    .nameplate{padding:18px 18px;}
+    .brand-title{font-size:28px;}
+    .toolbar{gap:16px;}
+    .readout .value{font-size:17px;}
   }
 </style>
 </head>
 <body>
 <div class="wrap">
 
-  <header>
-    <div>
-      <h1>Electric Billing</h1>
-      <p>Main house · Net cafe · Car wash</p>
+  <div class="nameplate">
+    <div class="nameplate-top">
+      <div>
+        <p class="plate-eyebrow"><span class="dot"></span>MULTI-METER BILLING SYSTEM</p>
+        <h1 class="brand-title" id="brandTitle">WATT<span>SPLIT</span></h1>
+        <p class="plate-sub" id="brandTagline">Main house · Net cafe · Car wash</p>
+      </div>
+      <button class="gear-btn" id="gearBtn" title="Settings" aria-label="Settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/></svg>
+      </button>
     </div>
-    <div class="month-field">
-      <label for="propertyLabel">Property</label>
-      <input type="text" id="propertyLabel" value="" placeholder="e.g. Main House">
+
+    <div class="settings-drawer" id="settingsDrawer">
+      <div class="settings-grid">
+        <div class="settings-field">
+          <label for="setBusinessName">Business / brand name</label>
+          <input type="text" id="setBusinessName" placeholder="WattSplit">
+        </div>
+        <div class="settings-field">
+          <label for="setCurrency">Currency symbol</label>
+          <input type="text" id="setCurrency" placeholder="₱" maxlength="4">
+        </div>
+        <div class="settings-field">
+          <label for="setSub1Name">Sub-meter 1 name</label>
+          <input type="text" id="setSub1Name" placeholder="Net Cafe">
+        </div>
+        <div class="settings-field">
+          <label for="setSub2Name">Sub-meter 2 name</label>
+          <input type="text" id="setSub2Name" placeholder="Car Wash">
+        </div>
+        <p class="settings-note">These labels apply everywhere on this page — rename them for any tenant type (laundromat, unit, garage, etc). Saved in this browser.</p>
+      </div>
     </div>
-    <div class="month-field">
-      <label for="monthLabel">Month</label>
-      <input type="text" id="monthLabel" value="">
+
+    <div class="toolbar">
+      <div class="month-field">
+        <label for="propertyLabel">Property</label>
+        <input type="text" id="propertyLabel" value="" placeholder="e.g. Main House">
+      </div>
+      <div class="month-field">
+        <label for="monthLabel">Month</label>
+        <input type="text" id="monthLabel" value="">
+      </div>
     </div>
-  </header>
+  </div>
 
   <div class="meters">
 
     <div class="meter-card">
-      <p class="m-title">Main meter</p>
+      <span class="screw-bl"></span><span class="screw-br"></span>
+      <p class="m-title">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+        Main meter
+      </p>
       <div class="row-inline">
         <div class="field"><label>Prev (kWh)</label><input type="number" id="mainPrev" value="0" step="any"></div>
         <div class="field"><label>Curr (kWh)</label><input type="number" id="mainCurr" value="0" step="any"></div>
       </div>
-      <div class="field"><label>Total bill (₱)</label><input type="number" id="totalBill" value="0" step="any"></div>
+      <div class="field"><label id="totalBillLabel">Total bill (₱)</label><input type="number" id="totalBill" value="0" step="any"></div>
       <div class="readout">
         <span class="label">Rate</span>
-        <span><span class="value" id="rateOut">0.0000</span><span class="unit">₱/kWh</span></span>
+        <span><span class="value" id="rateOut">0.0000</span><span class="unit" id="rateUnit">₱/kWh</span></span>
       </div>
     </div>
 
     <div class="meter-card">
-      <p class="m-title">Net cafe (sub 1)</p>
+      <span class="screw-bl"></span><span class="screw-br"></span>
+      <p class="m-title">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="13" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+        <span id="sub1Title">Net cafe</span> (sub 1)
+      </p>
       <div class="row-inline">
         <div class="field"><label>Prev (kWh)</label><input type="number" id="s1Prev" value="0" step="any"></div>
         <div class="field"><label>Curr (kWh)</label><input type="number" id="s1Curr" value="0" step="any"></div>
@@ -216,12 +370,16 @@
       </div>
       <div class="readout" style="margin-top:6px;">
         <span class="label">Bill</span>
-        <span><span class="value" id="s1BillOut">0.00</span><span class="unit">₱</span></span>
+        <span><span class="value" id="s1BillOut">0.00</span><span class="unit" id="s1BillUnit">₱</span></span>
       </div>
     </div>
 
     <div class="meter-card">
-      <p class="m-title">Car wash (sub 2)</p>
+      <span class="screw-bl"></span><span class="screw-br"></span>
+      <p class="m-title">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 17h14M5 17a2 2 0 1 1-4 0 2 2 0 0 1 4 0Zm14 0a2 2 0 1 1-4 0 2 2 0 0 1 4 0ZM3 17V11l2-5h10l3 5v6"/></svg>
+        <span id="sub2Title">Car wash</span> (sub 2)
+      </p>
       <div class="row-inline">
         <div class="field"><label>Prev (kWh)</label><input type="number" id="s2Prev" value="0" step="any"></div>
         <div class="field"><label>Curr (kWh)</label><input type="number" id="s2Curr" value="0" step="any"></div>
@@ -232,60 +390,93 @@
       </div>
       <div class="readout" style="margin-top:6px;">
         <span class="label">Bill</span>
-        <span><span class="value" id="s2BillOut">0.00</span><span class="unit">₱</span></span>
+        <span><span class="value" id="s2BillOut">0.00</span><span class="unit" id="s2BillUnit">₱</span></span>
       </div>
     </div>
 
     <div class="meter-card house">
-      <p class="m-title">House (main area)</p>
-      <p style="font-size:12px;color:#9C998D;margin:0 0 12px;">Main total minus net cafe minus car wash</p>
+      <span class="screw-bl"></span><span class="screw-br"></span>
+      <p class="m-title">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5 10v10h14V10"/></svg>
+        House (main area)
+      </p>
+      <p class="house-sub" id="houseSub">Main total minus net cafe minus car wash</p>
       <div class="readout">
         <span class="label">House usage</span>
         <span><span class="value" id="houseKwhOut">0.00</span><span class="unit">kWh</span></span>
       </div>
       <div class="readout" style="margin-top:6px;">
         <span class="label">House bill</span>
-        <span><span class="value" id="houseBillOut">0.00</span><span class="unit">₱</span></span>
+        <span><span class="value" id="houseBillOut">0.00</span><span class="unit" id="houseBillUnit">₱</span></span>
       </div>
     </div>
 
   </div>
 
   <div class="bar">
-    <button class="primary" id="calcBtn">Calculate all</button>
-    <button class="ghost" id="saveBtn">Save this month</button>
+    <button class="primary" id="calcBtn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+      Calculate all
+    </button>
+    <button class="ghost" id="saveBtn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+      Save this month
+    </button>
   </div>
   <div id="warningArea"></div>
 
   <section class="card">
-    <h2>Net cafe breakdown (owners)</h2>
-    <table id="ownersTable">
-      <thead>
-        <tr><th>Owner name</th><th>Units</th><th>Cost share (₱)</th><th></th></tr>
-      </thead>
-      <tbody id="ownersBody"></tbody>
-    </table>
+    <h2 id="ownersHeading">
+      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="7" r="4"/><path d="M2 21v-2a4 4 0 0 1 4-4h6a4 4 0 0 1 4 4v2"/><circle cx="17" cy="9" r="3"/><path d="M21 21v-1.5a3.5 3.5 0 0 0-2-3.2"/></svg>
+      <span id="ownersHeadingText">Net cafe breakdown (owners)</span>
+    </h2>
+    <div class="table-scroll">
+      <table id="ownersTable">
+        <thead>
+          <tr><th>Owner name</th><th>Units</th><th id="ownerShareHeader">Cost share (₱)</th><th></th></tr>
+        </thead>
+        <tbody id="ownersBody"></tbody>
+      </table>
+    </div>
     <div class="owner-actions">
-      <button class="ghost" id="addOwnerBtn">Add owner</button>
-      <button class="ghost" id="clearOwnersBtn">Clear owners</button>
+      <button class="ghost" id="addOwnerBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Add owner
+      </button>
+      <button class="ghost" id="clearOwnersBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+        Clear owners
+      </button>
     </div>
   </section>
 
   <section class="card">
     <div class="history-controls">
-      <h2 style="margin:0;">kWh history</h2>
+      <h2 style="margin:0;">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v5h5"/><path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"/><polyline points="12 7 12 12 15 15"/></svg>
+        kWh history
+      </h2>
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-        <select id="propertyFilter" style="font-family:'Inter',sans-serif;font-size:13px;border:1px solid var(--line);border-radius:6px;padding:7px 10px;"></select>
-        <button class="ghost" id="exportBtn">Export CSV</button>
-        <button class="danger-ghost" id="clearHistoryBtn">Clear history</button>
+        <select id="propertyFilter"></select>
+        <button class="ghost" id="exportBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Export CSV
+        </button>
+        <button class="danger-ghost" id="clearHistoryBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+          Clear history
+        </button>
       </div>
     </div>
+    <div id="sparklineWrap"></div>
     <div id="historyTableWrap"></div>
     <div id="trendWrap"></div>
   </section>
 
   <footer>
-    <p>History is saved in this browser only (localStorage), grouped by the Property name above. Use Export CSV to back it up or move it to another device.</p>
+    <p>History is saved in this browser only (localStorage), grouped by the Property name above.</p>
+    <p>Use Export CSV to back it up or move it to another device.</p>
+    <p class="brand-credit" id="footerCredit">WATTSPLIT</p>
   </footer>
 
 </div>
@@ -293,6 +484,69 @@
 <script>
 const $ = id => document.getElementById(id);
 
+/* ============== SETTINGS (white-label) ============== */
+const SETTINGS_KEY = 'electricBillingSettings';
+const DEFAULT_SETTINGS = { businessName:'WattSplit', currency:'₱', sub1Name:'Net Cafe', sub2Name:'Car Wash' };
+
+function loadSettings(){
+  try {
+    const s = JSON.parse(localStorage.getItem(SETTINGS_KEY));
+    return s ? { ...DEFAULT_SETTINGS, ...s } : { ...DEFAULT_SETTINGS };
+  } catch(e){ return { ...DEFAULT_SETTINGS }; }
+}
+let settings = loadSettings();
+
+function saveSettings(){
+  localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+}
+
+function applySettings(){
+  const nameUpper = settings.businessName.toUpperCase();
+  if (settings.businessName === DEFAULT_SETTINGS.businessName){
+    $('brandTitle').innerHTML = 'WATT<span>SPLIT</span>';
+  } else {
+    $('brandTitle').textContent = nameUpper;
+  }
+  $('brandTagline').textContent = `Main house · ${settings.sub1Name} · ${settings.sub2Name}`;
+  $('sub1Title').textContent = settings.sub1Name;
+  $('sub2Title').textContent = settings.sub2Name;
+  $('houseSub').textContent = `Main total minus ${settings.sub1Name.toLowerCase()} minus ${settings.sub2Name.toLowerCase()}`;
+  $('totalBillLabel').textContent = `Total bill (${settings.currency})`;
+  $('rateUnit').textContent = `${settings.currency}/kWh`;
+  $('s1BillUnit').textContent = settings.currency;
+  $('s2BillUnit').textContent = settings.currency;
+  $('houseBillUnit').textContent = settings.currency;
+  $('ownersHeadingText').textContent = `${settings.sub1Name} breakdown (owners)`;
+  $('ownerShareHeader').textContent = `Cost share (${settings.currency})`;
+  $('footerCredit').textContent = settings.businessName.toUpperCase();
+  document.title = `${settings.businessName} — Multi-Meter Electric Billing`;
+
+  $('setBusinessName').value = settings.businessName;
+  $('setCurrency').value = settings.currency;
+  $('setSub1Name').value = settings.sub1Name;
+  $('setSub2Name').value = settings.sub2Name;
+}
+
+['setBusinessName','setCurrency','setSub1Name','setSub2Name'].forEach(id => {
+  $(id).addEventListener('input', () => {
+    settings.businessName = $('setBusinessName').value.trim() || DEFAULT_SETTINGS.businessName;
+    settings.currency = $('setCurrency').value.trim() || DEFAULT_SETTINGS.currency;
+    settings.sub1Name = $('setSub1Name').value.trim() || DEFAULT_SETTINGS.sub1Name;
+    settings.sub2Name = $('setSub2Name').value.trim() || DEFAULT_SETTINGS.sub2Name;
+    saveSettings();
+    applySettings();
+    renderHistory();
+  });
+});
+
+$('gearBtn').addEventListener('click', () => {
+  $('settingsDrawer').classList.toggle('open');
+  $('gearBtn').classList.toggle('open');
+});
+
+applySettings();
+
+/* ============== CORE APP (same logic as before) ============== */
 function monthDefault(){
   const d = new Date();
   return d.toLocaleString('en-US', { month:'long', year:'numeric' });
@@ -381,7 +635,7 @@ function calculate(){
   const totalKwh = mCurr - mPrev;
 
   if (totalKwh <= 0){
-    warningArea.innerHTML = '<div class="warning-box">Main meter Curr must be greater than Prev.</div>';
+    warningArea.innerHTML = '<div class="warning-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg><span>Main meter Curr must be greater than Prev.</span></div>';
     return;
   }
 
@@ -406,7 +660,7 @@ function calculate(){
   $('houseBillOut').textContent = fmt(houseBill);
 
   if (houseKwh < 0){
-    warningArea.innerHTML = '<div class="warning-box">Net cafe + car wash kWh is more than the main meter total. Check the sub-meter readings.</div>';
+    warningArea.innerHTML = `<div class="warning-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg><span>${settings.sub1Name} + ${settings.sub2Name} kWh is more than the main meter total. Check the sub-meter readings.</span></div>`;
   }
 
   lastCalc = {
@@ -493,7 +747,7 @@ $('clearHistoryBtn').addEventListener('click', () => {
 $('exportBtn').addEventListener('click', () => {
   const history = filteredHistory();
   if (history.length === 0){ alert('No history to export yet.'); return; }
-  const header = 'Property,Month,MainPrevKwh,MainCurrKwh,MainTotalKwh,TotalCash,RatePerKwh,CafeKwh,CafeBill,CarWashKwh,CarWashBill,HouseKwh,HouseBill';
+  const header = 'Property,Month,MainPrevKwh,MainCurrKwh,MainTotalKwh,TotalCash,RatePerKwh,Sub1Kwh,Sub1Bill,Sub2Kwh,Sub2Bill,HouseKwh,HouseBill';
   const rows = history.map(r => [
     r.property || 'Main House', r.month, r.mPrev, r.mCurr, r.totalKwh, r.totalCash, r.rate.toFixed(4),
     r.s1Kwh, r.s1Bill.toFixed(2), r.s2Kwh, r.s2Bill.toFixed(2), r.houseKwh.toFixed(2), r.houseBill.toFixed(2)
@@ -515,6 +769,44 @@ function filteredHistory(){
   return history.filter(r => (r.property || 'Main House') === filterValue);
 }
 
+/* ---- signature element: hand-rolled sparkline of House kWh ---- */
+function renderSparkline(history){
+  const wrap = $('sparklineWrap');
+  if (history.length < 2){ wrap.innerHTML = ''; return; }
+
+  const values = history.map(r => r.houseKwh);
+  const w = 600, h = 120, pad = 16;
+  const min = Math.min(...values), max = Math.max(...values);
+  const range = (max - min) || 1;
+  const stepX = (w - pad*2) / (values.length - 1);
+
+  const points = values.map((v,i) => {
+    const x = pad + i*stepX;
+    const y = h - pad - ((v - min)/range)*(h - pad*2);
+    return [x,y];
+  });
+
+  const linePath = points.map((p,i) => (i===0 ? 'M' : 'L') + p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' ');
+  const areaPath = linePath + ` L${points[points.length-1][0].toFixed(1)},${h-pad} L${points[0][0].toFixed(1)},${h-pad} Z`;
+
+  const trendingDown = values[values.length-1] < values[0];
+  const strokeColor = trendingDown ? '#4C7A6B' : '#9C3B2E';
+  const fillColor = trendingDown ? 'rgba(76,122,107,0.14)' : 'rgba(156,59,46,0.12)';
+
+  const dots = points.map((p,i) => `<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="3" fill="${strokeColor}" />`).join('');
+
+  wrap.innerHTML = `
+    <div class="sparkline-wrap">
+      <div class="sp-label">House kWh trend — ${history[0].month} to ${history[history.length-1].month}</div>
+      <svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">
+        <path d="${areaPath}" fill="${fillColor}" stroke="none"/>
+        <path d="${linePath}" fill="none" stroke="${strokeColor}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+        ${dots}
+      </svg>
+    </div>
+  `;
+}
+
 function renderHistory(){
   const history = filteredHistory();
   const showPropertyColumn = $('propertyFilter').value === '__all__';
@@ -522,38 +814,45 @@ function renderHistory(){
   const trendWrap = $('trendWrap');
 
   if (history.length === 0){
-    wrap.innerHTML = '<p style="color:var(--ink-soft);font-size:13px;">No months saved yet for this property. Calculate, then click Save this month.</p>';
+    wrap.innerHTML = '<p class="empty-note">No months saved yet for this property. Calculate, then click Save this month.</p>';
     trendWrap.innerHTML = '';
+    $('sparklineWrap').innerHTML = '';
     return;
   }
+
+  if (!showPropertyColumn) renderSparkline(history); else $('sparklineWrap').innerHTML = '';
 
   let rows = history.map(r => `
     <tr>
       ${showPropertyColumn ? `<td>${r.property || 'Main House'}</td>` : ''}
       <td>${r.month}</td>
-      <td class="num">${fmt(r.totalKwh)} kWh / ₱${fmt(r.totalCash)}</td>
-      <td class="num">${fmt(r.s1Kwh)} kWh / ₱${fmt(r.s1Bill)}</td>
-      <td class="num">${fmt(r.s2Kwh)} kWh / ₱${fmt(r.s2Bill)}</td>
-      <td class="num">${fmt(r.houseKwh)} kWh / ₱${fmt(r.houseBill)}</td>
+      <td class="num">${fmt(r.totalKwh)} kWh / ${settings.currency}${fmt(r.totalCash)}</td>
+      <td class="num">${fmt(r.s1Kwh)} kWh / ${settings.currency}${fmt(r.s1Bill)}</td>
+      <td class="num">${fmt(r.s2Kwh)} kWh / ${settings.currency}${fmt(r.s2Bill)}</td>
+      <td class="num">${fmt(r.houseKwh)} kWh / ${settings.currency}${fmt(r.houseBill)}</td>
     </tr>
   `).join('');
 
   wrap.innerHTML = `
-    <div style="overflow-x:auto;">
+    <div class="table-scroll">
       <table>
-        <thead><tr>${showPropertyColumn ? '<th>Property</th>' : ''}<th>Month</th><th>Main total kWh / Amount</th><th>Cafe kWh / Amount</th><th>Car wash kWh / Amount</th><th>House kWh / Amount</th></tr></thead>
+        <thead><tr>${showPropertyColumn ? '<th>Property</th>' : ''}<th>Month</th><th>Main total kWh / Amount</th><th>${settings.sub1Name} kWh / Amount</th><th>${settings.sub2Name} kWh / Amount</th><th>House kWh / Amount</th></tr></thead>
         <tbody>${rows}</tbody>
       </table>
     </div>
   `;
 
+  const arrowUp = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>';
+  const arrowDown = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>';
+  const infoIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>';
+
   if (showPropertyColumn){
-    trendWrap.innerHTML = '<div class="trend-box">Select a single property above to see its house kWh trend.</div>';
+    trendWrap.innerHTML = `<div class="trend-box">${infoIcon}<span>Select a single property above to see its house kWh trend and chart.</span></div>`;
     return;
   }
 
   if (history.length < 2){
-    trendWrap.innerHTML = '<div class="trend-box">Save at least 2 months for this property to see a trend on house kWh usage.</div>';
+    trendWrap.innerHTML = `<div class="trend-box">${infoIcon}<span>Save at least 2 months for this property to see a trend on house kWh usage.</span></div>`;
     return;
   }
 
@@ -562,19 +861,19 @@ function renderHistory(){
 
   if (last < first){
     const pct = (100 * (first-last) / first).toFixed(1);
-    trendWrap.innerHTML = `<div class="trend-box down">
+    trendWrap.innerHTML = `<div class="trend-box down">${arrowDown}<span>
       House kWh usage went from ${fmt(first)} to ${fmt(last)} (down ${pct}%).
       Solar does appear to be reducing the house's grid consumption.
-      If the peso bill hasn't dropped as much, check whether net cafe or car wash usage grew,
+      If the peso bill hasn't dropped as much, check whether ${settings.sub1Name.toLowerCase()} or ${settings.sub2Name.toLowerCase()} usage grew,
       or whether the utility has minimum charges or rate increases eating into the savings.
-    </div>`;
+    </span></div>`;
   } else {
-    trendWrap.innerHTML = `<div class="trend-box up">
+    trendWrap.innerHTML = `<div class="trend-box up">${arrowUp}<span>
       House kWh usage went from ${fmt(first)} to ${fmt(last)} — it has not gone down.
       This suggests solar generation isn't actually reaching or offsetting the house's own load.
       Worth checking: is solar wired into the main panel or only specific outlets, is there an
       approved net-metering agreement with the utility, and has household usage increased at the same time.
-    </div>`;
+    </span></div>`;
   }
 }
 
