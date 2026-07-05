@@ -31,14 +31,25 @@
   html{scroll-behavior:smooth;}
   body{
     margin:0;
-    background:
-      radial-gradient(1100px 380px at 8% -8%, rgba(181,101,45,0.07), transparent),
-      radial-gradient(900px 320px at 95% 0%, rgba(76,122,107,0.06), transparent),
-      var(--paper);
+    background:var(--paper);
     color:var(--ink);
     font-family:'Inter',sans-serif;
     padding:0 18px 90px;
+    position:relative;
   }
+  .bg-scene{
+    position:fixed;inset:0;width:100%;height:100%;
+    z-index:0;pointer-events:none;
+  }
+  .bg-scene svg{width:100%;height:100%;display:block;}
+  body::before{
+    content:"";
+    position:fixed;inset:0;pointer-events:none;z-index:1;
+    opacity:0.5;
+    mix-blend-mode:multiply;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='matrix' values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.03 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  }
+  body > .wrap{position:relative;z-index:2;}
   .wrap{max-width:1040px;margin:0 auto;}
   ::selection{background:rgba(215,169,74,0.35);}
 
@@ -287,6 +298,89 @@
 </style>
 </head>
 <body>
+<div class="bg-scene" aria-hidden="true">
+<svg viewBox="0 0 1900 1000" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="boltGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#D7A94A"/>
+      <stop offset="100%" stop-color="#B5652D"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1900" height="1000" fill="#F2EFE6"/>
+
+  <!-- top-left diagonal cluster -->
+  <polygon points="-60,-60 460,-60 130,270 -60,270" fill="#B5652D" opacity="0.13"/>
+  <polygon points="-60,110 560,-60 690,40 -60,430" fill="#4C7A6B" opacity="0.08"/>
+  <polygon points="-60,300 740,-60 840,10 -60,570" fill="#D7A94A" opacity="0.06"/>
+
+  <!-- bottom-right diagonal cluster -->
+  <polygon points="1960,1060 1330,1060 1650,690 1960,690" fill="#B5652D" opacity="0.20"/>
+  <polygon points="1960,1060 1120,1060 1500,590 1960,590" fill="#8F4F22" opacity="0.12"/>
+  <polygon points="1960,1060 910,1060 1340,480 1960,480" fill="#4C7A6B" opacity="0.07"/>
+
+  <!-- circuit traces, left/lower field -->
+  <g fill="none" stroke="#1B221D" stroke-width="2" opacity="0.10">
+    <polyline points="30,120 190,120 190,190 330,190"/>
+    <polyline points="30,760 170,760 170,700 300,700 300,650"/>
+    <polyline points="60,880 60,820 220,820 220,860 380,860"/>
+    <polyline points="420,150 420,90 560,90"/>
+    <polyline points="470,760 590,760 590,820 700,820"/>
+  </g>
+  <g fill="#1B221D" opacity="0.16">
+    <circle cx="30" cy="120" r="4"/>
+    <circle cx="330" cy="190" r="4"/>
+    <circle cx="30" cy="760" r="4"/>
+    <circle cx="300" cy="650" r="4"/>
+    <circle cx="60" cy="880" r="4"/>
+    <circle cx="380" cy="860" r="4"/>
+    <circle cx="560" cy="90" r="4"/>
+    <circle cx="700" cy="820" r="4"/>
+  </g>
+
+  <!-- circuit traces, right field (sparser, near towers) -->
+  <g fill="none" stroke="#4C7A6B" stroke-width="2" opacity="0.10">
+    <polyline points="1720,760 1850,760 1850,700"/>
+    <polyline points="1600,880 1740,880 1740,930"/>
+  </g>
+  <g fill="#4C7A6B" opacity="0.16">
+    <circle cx="1850" cy="700" r="4"/>
+    <circle cx="1740" cy="930" r="4"/>
+  </g>
+
+  <!-- bolt badge, left-center -->
+  <g transform="translate(300,560)">
+    <circle r="175" fill="none" stroke="#8F4F22" stroke-width="2" opacity="0.30"/>
+    <circle r="140" fill="none" stroke="#8F4F22" stroke-width="1.5" stroke-dasharray="6 10" opacity="0.24"/>
+    <circle cx="150" cy="-60" r="5" fill="#8F4F22" opacity="0.3"/>
+    <circle cx="-160" cy="90" r="5" fill="#8F4F22" opacity="0.3"/>
+    <path d="M18,-150 L-75,20 L2,20 L-18,150 L85,-30 L10,-30 Z" fill="url(#boltGrad)" opacity="0.5"/>
+  </g>
+
+  <!-- transmission tower template -->
+  <g id="towerTemplate" fill="none" stroke-width="2">
+    <path d="M10,400 L90,40 L100,0 L110,40 L190,400"/>
+    <line x1="60" y1="260" x2="140" y2="260"/>
+    <line x1="75" y1="140" x2="125" y2="140"/>
+    <line x1="90" y1="40" x2="110" y2="40"/>
+    <line x1="10" y1="400" x2="140" y2="260"/>
+    <line x1="190" y1="400" x2="60" y2="260"/>
+    <line x1="60" y1="260" x2="125" y2="140"/>
+    <line x1="140" y1="260" x2="75" y2="140"/>
+    <line x1="75" y1="140" x2="110" y2="40"/>
+    <line x1="125" y1="140" x2="90" y2="40"/>
+    <line x1="30" y1="200" x2="170" y2="200"/>
+    <line x1="30" y1="200" x2="60" y2="260"/>
+    <line x1="170" y1="200" x2="140" y2="260"/>
+  </g>
+
+  <path d="M1330,660 C1420,600 1460,560 1560,480" stroke="#4C7A6B" stroke-width="1.5" fill="none" opacity="0.14"/>
+  <path d="M1370,660 C1460,610 1500,580 1600,500" stroke="#4C7A6B" stroke-width="1.5" fill="none" opacity="0.14"/>
+  <use href="#towerTemplate" transform="translate(1330,460) scale(0.65)" stroke="#4C7A6B" opacity="0.14"/>
+  <use href="#towerTemplate" transform="translate(1600,300) scale(1)" stroke="#8F4F22" opacity="0.20"/>
+
+</svg>
+</div>
 <div class="wrap">
 
   <div class="nameplate">
