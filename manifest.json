@@ -1,0 +1,15 @@
+{
+  "name": "WattSplit — Multi-Meter Electric Billing",
+  "short_name": "WattSplit",
+  "description": "Split one electric bill across multiple sub-meters and track house kWh usage over time.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#171E1A",
+  "theme_color": "#171E1A",
+  "orientation": "portrait-primary",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
