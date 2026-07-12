@@ -290,6 +290,23 @@
   .trend-box.up{background:#FBEAE8;color:#7A231A;}
   .trend-box.down{background:#EAF2EE;color:#25473C;}
 
+  .report-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:6px;}
+  .report-stat{background:#F5F3E9;border:1px solid var(--line);border-radius:10px;padding:12px 14px;}
+  .report-stat .rs-label{font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink-soft);margin-bottom:6px;}
+  .report-stat .rs-value{font-family:'Space Mono',monospace;font-size:16px;font-weight:700;display:flex;align-items:center;gap:5px;color:var(--ink);}
+  .report-stat .rs-value.good{color:var(--verdigris-dark);}
+  .report-stat .rs-value.bad{color:var(--rust);}
+  .report-stat .rs-value.flat{color:var(--ink-soft);}
+  .report-stat .rs-value svg{width:14px;height:14px;flex-shrink:0;}
+  .report-stat .rs-sub{font-size:11px;color:var(--ink-soft);margin-top:4px;}
+  .report-period{font-size:11.5px;color:var(--ink-soft);margin-bottom:10px;}
+  .report-narrative{
+    margin-top:4px;padding:14px 16px;border-radius:10px;font-size:13px;line-height:1.7;
+    background:#F5F3E9;border-left:3px solid var(--copper);
+  }
+  .report-narrative p{margin:0 0 8px;}
+  .report-narrative p:last-child{margin-bottom:0;}
+
   .table-scroll{overflow-x:auto;border-radius:8px;}
   .empty-note{color:var(--ink-soft);font-size:13px;padding:6px 0;}
 
@@ -1168,39 +1185,122 @@ function renderHistory(){
     </div>
   `;
 
-  const arrowUp = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>';
-  const arrowDown = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>';
   const infoIcon = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>';
 
   if (showPropertyColumn){
-    trendWrap.innerHTML = `<div class="trend-box">${infoIcon}<span>Select a single property above to see its house kWh trend and chart.</span></div>`;
+    trendWrap.innerHTML = `<div class="trend-box">${infoIcon}<span>Select a single property above to see its detailed report.</span></div>`;
     return;
   }
 
   if (history.length < 2){
-    trendWrap.innerHTML = `<div class="trend-box">${infoIcon}<span>Save at least 2 months for this property to see a trend on house kWh usage.</span></div>`;
+    trendWrap.innerHTML = `<div class="trend-box">${infoIcon}<span>Save at least 2 months for this property to see a detailed report.</span></div>`;
     return;
   }
 
-  const first = history[0].houseKwh;
-  const last = history[history.length-1].houseKwh;
+  trendWrap.innerHTML = buildDetailedReport(history);
+}
 
-  if (last < first){
-    const pct = (100 * (first-last) / first).toFixed(1);
-    trendWrap.innerHTML = `<div class="trend-box down">${arrowDown}<span>
-      House kWh usage went from ${fmt(first)} to ${fmt(last)} (down ${pct}%).
-      Solar does appear to be reducing the house's grid consumption.
-      If the peso bill hasn't dropped as much, check whether ${settings.sub1Name.toLowerCase()} or ${settings.sub2Name.toLowerCase()} usage grew,
-      or whether the utility has minimum charges or rate increases eating into the savings.
-    </span></div>`;
+/* ---- multi-metric report: kWh AND rate AND bill, with a narrative that
+   explains how they interact (e.g. usage down but rate up) ---- */
+function pctChange(from, to){
+  if (!from || from === 0) return null;
+  return ((to - from) / from) * 100;
+}
+function arrowIconSmall(dir){
+  if (dir === 'up') return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>';
+  if (dir === 'down') return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>';
+  return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/></svg>';
+}
+function statCard(label, fromVal, toVal, unit, decimals){
+  const pct = pctChange(fromVal, toVal);
+  let dir = 'flat', cls = 'flat';
+  if (pct === null || Math.abs(pct) < 0.5){ dir = 'flat'; cls = 'flat'; }
+  else if (pct > 0){ dir = 'up'; cls = 'bad'; }
+  else { dir = 'down'; cls = 'good'; }
+  const pctText = pct === null ? 'n/a' : `${pct > 0 ? '+' : ''}${pct.toFixed(1)}%`;
+  return `
+    <div class="report-stat">
+      <div class="rs-label">${label}</div>
+      <div class="rs-value ${cls}">${arrowIconSmall(dir)}${pctText}</div>
+      <div class="rs-sub">${fmt(fromVal, decimals)} → ${fmt(toVal, decimals)} ${unit}</div>
+    </div>
+  `;
+}
+
+function buildDetailedReport(history){
+  const first = history[0];
+  const last = history[history.length - 1];
+
+  const houseKwhPct = pctChange(first.houseKwh, last.houseKwh);
+  const ratePct = pctChange(first.rate, last.rate);
+  const houseBillPct = pctChange(first.houseBill, last.houseBill);
+  const s1Pct = pctChange(first.s1Kwh, last.s1Kwh);
+  const s2Pct = pctChange(first.s2Kwh, last.s2Kwh);
+
+  const grid = `
+    <div class="report-grid">
+      ${statCard('House kWh', first.houseKwh, last.houseKwh, 'kWh', 2)}
+      ${statCard('Rate per kWh', first.rate, last.rate, `${settings.currency}/kWh`, 4)}
+      ${statCard('House bill', first.houseBill, last.houseBill, settings.currency, 2)}
+      ${statCard('Total bill', first.totalCash, last.totalCash, settings.currency, 2)}
+      ${statCard(settings.sub1Name + ' kWh', first.s1Kwh, last.s1Kwh, 'kWh', 2)}
+      ${statCard(settings.sub2Name + ' kWh', first.s2Kwh, last.s2Kwh, 'kWh', 2)}
+    </div>
+  `;
+
+  /* narrative: explain how usage and rate interacted */
+  const usageDown = houseKwhPct !== null && houseKwhPct < -0.5;
+  const usageUp = houseKwhPct !== null && houseKwhPct > 0.5;
+  const rateDown = ratePct !== null && ratePct < -0.5;
+  const rateUp = ratePct !== null && ratePct > 0.5;
+
+  let usageRateLine;
+  if (usageDown && rateUp){
+    usageRateLine = `House usage dropped ${Math.abs(houseKwhPct).toFixed(1)}%, but the rate per kWh climbed ${ratePct.toFixed(1)}% over the same period. That rate increase is eating into the savings solar should be giving you — the bill fell less than the usage drop alone would suggest.`;
+  } else if (usageDown && rateDown){
+    usageRateLine = `House usage dropped ${Math.abs(houseKwhPct).toFixed(1)}% and the rate per kWh also fell ${Math.abs(ratePct).toFixed(1)}%. Both are working in your favor, so the house bill fell faster than usage alone would explain.`;
+  } else if (usageUp && rateDown){
+    usageRateLine = `The rate per kWh dropped ${Math.abs(ratePct).toFixed(1)}%, but house usage rose ${houseKwhPct.toFixed(1)}% over the same period, which cancelled out some or all of that benefit.`;
+  } else if (usageUp && rateUp){
+    usageRateLine = `Both house usage (+${houseKwhPct.toFixed(1)}%) and the rate per kWh (+${ratePct.toFixed(1)}%) increased, which compounds into a bigger jump in the house bill than either factor alone.`;
+  } else if (usageDown && ratePct !== null){
+    usageRateLine = `House usage dropped ${Math.abs(houseKwhPct).toFixed(1)}% while the rate per kWh stayed roughly flat, so the bill drop tracks the usage drop fairly closely.`;
+  } else if (ratePct !== null){
+    usageRateLine = `House usage stayed roughly flat while the rate per kWh changed ${ratePct > 0 ? '+' : ''}${ratePct.toFixed(1)}%, so that rate change is the main driver of any bill difference.`;
   } else {
-    trendWrap.innerHTML = `<div class="trend-box up">${arrowUp}<span>
-      House kWh usage went from ${fmt(first)} to ${fmt(last)} — it has not gone down.
-      This suggests solar generation isn't actually reaching or offsetting the house's own load.
-      Worth checking: is solar wired into the main panel or only specific outlets, is there an
-      approved net-metering agreement with the utility, and has household usage increased at the same time.
-    </span></div>`;
+    usageRateLine = `Not enough rate history yet to compare usage against rate changes.`;
   }
+
+  let subMeterLine = '';
+  const s1Grew = s1Pct !== null && s1Pct > 5;
+  const s2Grew = s2Pct !== null && s2Pct > 5;
+  if (usageDown && (s1Grew || s2Grew)){
+    const parts = [];
+    if (s1Grew) parts.push(`${settings.sub1Name} usage rose ${s1Pct.toFixed(1)}%`);
+    if (s2Grew) parts.push(`${settings.sub2Name} usage rose ${s2Pct.toFixed(1)}%`);
+    subMeterLine = `<p>Worth noting: ${parts.join(' and ')} over the same period. If the total bill hasn't dropped as much as expected, some of that is coming from these sub-meters, not the house.</p>`;
+  }
+
+  let closingLine;
+  if (houseBillPct === null){
+    closingLine = '';
+  } else if (houseBillPct < -0.5){
+    closingLine = `<p>Net result: the house's own bill is down ${Math.abs(houseBillPct).toFixed(1)}% from ${first.month} to ${last.month}.</p>`;
+  } else if (houseBillPct > 0.5){
+    closingLine = `<p>Net result: the house's own bill is actually up ${houseBillPct.toFixed(1)}% from ${first.month} to ${last.month}, despite any usage changes.</p>`;
+  } else {
+    closingLine = `<p>Net result: the house's own bill is roughly unchanged from ${first.month} to ${last.month}.</p>`;
+  }
+
+  return `
+    <div class="report-period">Detailed report — ${first.month} to ${last.month} (${history.length} months saved)</div>
+    ${grid}
+    <div class="report-narrative">
+      <p>${usageRateLine}</p>
+      ${subMeterLine}
+      ${closingLine}
+    </div>
+  `;
 }
 
 const initialProfile = localStorage.getItem(LAST_PROPERTY_KEY) || 'Main House';
