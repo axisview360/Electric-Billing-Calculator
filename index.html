@@ -308,6 +308,16 @@
   .report-narrative p:last-child{margin-bottom:0;}
 
   .table-scroll{overflow-x:auto;border-radius:8px;}
+
+  td.num.usage-high{background:rgba(156,59,46,0.10);color:var(--rust);font-weight:700;border-radius:4px;}
+  td.num.usage-low{background:rgba(76,122,107,0.12);color:var(--verdigris-dark);font-weight:700;border-radius:4px;}
+  .usage-legend{
+    display:flex;align-items:center;gap:16px;flex-wrap:wrap;
+    font-size:11.5px;color:var(--ink-soft);margin-bottom:10px;
+  }
+  .legend-chip{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:5px;vertical-align:middle;}
+  .legend-chip.high{background:rgba(156,59,46,0.35);}
+  .legend-chip.low{background:rgba(76,122,107,0.4);}
   .empty-note{color:var(--ink-soft);font-size:13px;padding:6px 0;}
 
   .view-history-row{
@@ -1213,19 +1223,52 @@ function renderSparkline(history){
   `;
 }
 
+/* Compares each saved month to the one right before it (chronologically),
+   per meter, so the table can flag "higher than last month" (red) or
+   "lower than last month" (green). The very first saved month has nothing
+   to compare against, so it gets no highlight. */
+function computeTrends(history){
+  const fields = ['totalKwh','s1Kwh','s2Kwh','houseKwh'];
+  return history.map((r, i) => {
+    if (i === 0) return { ...r, trend: { totalKwh:null, s1Kwh:null, s2Kwh:null, houseKwh:null } };
+    const prev = history[i - 1];
+    const trend = {};
+    fields.forEach(f => {
+      if (r[f] > prev[f]) trend[f] = 'high';
+      else if (r[f] < prev[f]) trend[f] = 'low';
+      else trend[f] = null;
+    });
+    return { ...r, trend };
+  });
+}
+
+function trendClass(record, field){
+  if (!record.trend || !record.trend[field]) return '';
+  return record.trend[field] === 'high' ? ' usage-high' : ' usage-low';
+}
+
 function buildHistoryTableHTML(records, showPropertyColumn){
+  const hasTrend = records.some(r => r.trend);
   const rows = records.map(r => `
     <tr>
       ${showPropertyColumn ? `<td>${r.property || 'Main House'}</td>` : ''}
       <td>${r.month}</td>
-      <td class="num">${fmt(r.totalKwh)} kWh / ${settings.currency}${fmt(r.totalCash)}</td>
-      <td class="num">${fmt(r.s1Kwh)} kWh / ${settings.currency}${fmt(r.s1Bill)}</td>
-      <td class="num">${fmt(r.s2Kwh)} kWh / ${settings.currency}${fmt(r.s2Bill)}</td>
-      <td class="num">${fmt(r.houseKwh)} kWh / ${settings.currency}${fmt(r.houseBill)}</td>
+      <td class="num${trendClass(r,'totalKwh')}">${fmt(r.totalKwh)} kWh / ${settings.currency}${fmt(r.totalCash)}</td>
+      <td class="num${trendClass(r,'s1Kwh')}">${fmt(r.s1Kwh)} kWh / ${settings.currency}${fmt(r.s1Bill)}</td>
+      <td class="num${trendClass(r,'s2Kwh')}">${fmt(r.s2Kwh)} kWh / ${settings.currency}${fmt(r.s2Bill)}</td>
+      <td class="num${trendClass(r,'houseKwh')}">${fmt(r.houseKwh)} kWh / ${settings.currency}${fmt(r.houseBill)}</td>
     </tr>
   `).join('');
 
+  const legend = hasTrend ? `
+    <div class="usage-legend">
+      <span class="legend-chip high"></span> Higher than previous month
+      <span class="legend-chip low"></span> Lower than previous month
+    </div>
+  ` : '';
+
   return `
+    ${legend}
     <div class="table-scroll">
       <table>
         <thead><tr>${showPropertyColumn ? '<th>Property</th>' : ''}<th>Month</th><th>Main total kWh / Amount</th><th>${settings.sub1Name} kWh / Amount</th><th>${settings.sub2Name} kWh / Amount</th><th>House kWh / Amount</th></tr></thead>
@@ -1246,7 +1289,7 @@ function openHistoryModal(){
     const all = loadHistory();
     const properties = getDistinctProperties(all).sort();
     body.innerHTML = properties.map(p => {
-      const records = all.filter(r => (r.property || 'Main House') === p);
+      const records = computeTrends(all.filter(r => (r.property || 'Main House') === p));
       return `
         <div class="modal-property-group">
           <h3 class="modal-property-heading">${p} <span class="modal-count">(${records.length} month${records.length === 1 ? '' : 's'})</span></h3>
@@ -1255,7 +1298,7 @@ function openHistoryModal(){
       `;
     }).join('');
   } else {
-    const records = filteredHistory();
+    const records = computeTrends(filteredHistory());
     body.innerHTML = `
       <div class="modal-property-group">
         <h3 class="modal-property-heading">${$('propertyFilter').value} <span class="modal-count">(${records.length} month${records.length === 1 ? '' : 's'})</span></h3>
@@ -1297,7 +1340,8 @@ function renderHistory(){
 
   if (!showPropertyColumn) renderSparkline(history); else $('sparklineWrap').innerHTML = '';
 
-  const recentHistory = history.slice(-3);
+  const annotated = showPropertyColumn ? history : computeTrends(history);
+  const recentHistory = annotated.slice(-3);
   wrap.innerHTML = buildHistoryTableHTML(recentHistory, showPropertyColumn);
 
   if (history.length > 3){
