@@ -1556,7 +1556,7 @@ if ('serviceWorker' in navigator){
    it reads as an intentional splash rather than a flash, then fades once
    fonts/content are actually ready. */
 (function(){
-  const MIN_VISIBLE_MS = 700;
+  const MIN_VISIBLE_MS = 3000;
   const shownAt = Date.now();
   function hideLoadingScreen(){
     const el = $('loadingScreen');
